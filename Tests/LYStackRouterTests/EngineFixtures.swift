@@ -89,6 +89,12 @@
         }
 
         func register(into builder: inout LYStackRouteRegistry<AppRoute>.Builder) {
+            builder.url("club/<clubID>", parse: { $0["clubID"].map(AppRoute.club) }, print: { route in
+                if case let .club(id) = route { LYURLValues(path: ["clubID": id]) } else { nil }
+            })
+            builder.url("profile/<userID>", parse: { $0["userID"].map(AppRoute.profile) }, print: { route in
+                if case let .profile(id) = route { LYURLValues(path: ["userID": id]) } else { nil }
+            })
             builder.page(.club, policy: .init(allowsExternal: true, validate: { route in
                 if case let .club(id) = route { !id.isEmpty } else { false }
             })) { route, context in

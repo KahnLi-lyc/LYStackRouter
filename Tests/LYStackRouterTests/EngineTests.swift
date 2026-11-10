@@ -208,6 +208,18 @@
             let url = try XCTUnwrap(URL(string: "app://nothing/here"))
             let unmatched = await router.openURL(url)
             XCTAssertEqual(unmatched, .failed(.unmatchedURL))
+
+            let club = try XCTUnwrap(router.url(for: .club("42")))
+            XCTAssertEqual(club.absoluteString, "app://club/42")
+            let opened = await router.openURL(club)
+            XCTAssertEqual(opened, .created)
+            XCTAssertEqual(pages(home), [nil, .club("42")])
+
+            // URL 能解析，但目标路由没有放开外部来源。
+            let profile = try XCTUnwrap(URL(string: "app://profile/a"))
+            let blocked = await router.openURL(profile)
+            XCTAssertEqual(blocked, .failed(.notExternal))
+            XCTAssertEqual(home.viewControllers.count, 2)
         }
 
         // MARK: - Host Lifecycle

@@ -75,6 +75,52 @@
             XCTAssertEqual(router.request(.club("x")), .created)
         }
 
+        func testFallbackHandlesPlaceholderAndDisabledKinds() throws {
+            struct PartialModule: LYRouteModule {
+                static let moduleID = "partial"
+                init(environment: LYRouteEnvironment) {}
+                func register(into builder: inout LYStackRouteRegistry<AppRoute>.Builder) {
+                    builder.page(.club, policy: .init(status: .placeholder)) { _, _ in XCTFail("占位路由不应调用处理器") }
+                    builder.page(.profile, policy: .init(status: .disabled)) { _, _ in XCTFail("禁用路由不应调用处理器") }
+                }
+            }
+            let host = LYSingleStackHost(root: UIViewController())
+            var reasons: [LYRouteFallbackReason] = []
+            let router = try LYStackRouter<AppRoute>.build(
+                host: host,
+                modules: .explicit([PartialModule.self]),
+                fallback: LYRouteFallback { _, reason, context in
+                    reasons.append(reason)
+                    context.show { UIViewController() }
+                },
+                allowsUnregistered: true
+            )
+            XCTAssertEqual(router.request(.club("x")), .created)
+            XCTAssertEqual(router.request(.profile("a")), .created)
+            XCTAssertEqual(router.request(.wallet), .created)
+            XCTAssertEqual(reasons, [.placeholder, .unavailable, .unregistered])
+        }
+
+        func testDisabledKindWithoutFallbackFailsAndPlaceholderRunsHandler() throws {
+            struct PartialModule: LYRouteModule {
+                static let moduleID = "partial"
+                init(environment: LYRouteEnvironment) {}
+                func register(into builder: inout LYStackRouteRegistry<AppRoute>.Builder) {
+                    builder.page(.club, policy: .init(status: .placeholder)) { _, context in context.show { UIViewController() } }
+                    builder.page(.profile, policy: .init(status: .disabled)) { _, _ in }
+                }
+            }
+            let host = LYSingleStackHost(root: UIViewController())
+            let router = try LYStackRouter<AppRoute>.build(
+                host: host,
+                modules: .explicit([PartialModule.self]),
+                allowsUnregistered: true
+            )
+            XCTAssertEqual(router.request(.club("x")), .created, "没有兜底时占位路由仍由自己的处理器展示")
+            XCTAssertEqual(router.request(.profile("a")), .failed(.unavailable))
+            XCTAssertEqual(router.request(.wallet), .failed(.unregistered))
+        }
+
         // MARK: - Interceptors and Observers
 
         func testRedirectRunsFullAdmissionAndLoopIsStopped() throws {
