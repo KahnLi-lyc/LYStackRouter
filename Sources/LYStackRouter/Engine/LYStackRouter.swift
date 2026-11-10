@@ -37,6 +37,8 @@
         var pending: Pending?
         var redirectDepth = 0
         var modalObserver: PresentationRemovalObserver?
+        /// 等待请求正在观察的导航转场；同一转场只注册一次完成回调。
+        var pendingTransitionID: ObjectIdentifier?
         var confirmationObservation: PresentationRemovalView?
         /// 只持有进行中栈操作的移出快照，转场结束或宿主解绑时取走。
         var transitionRemovals: [UUID: [UIViewController]] = [:]

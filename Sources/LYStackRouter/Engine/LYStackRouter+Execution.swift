@@ -79,6 +79,7 @@
             waiters.forEach { $0.resume() }
             modalObserver?.detach()
             modalObserver = nil
+            pendingTransitionID = nil
         }
 
         func isCurrent(_ token: UUID) -> Bool {
@@ -235,10 +236,17 @@
             terminateExecution()
         }
 
-        /// 外部请求被弹窗挡住时，观察该弹窗离开窗口，然后重新尝试。
+        /// 外部请求受阻时观察阻挡它的转场或弹窗，结束后重新尝试。
+        ///
+        /// 交互返回被取消时 UIKit 不保证再回调 `didShow`，因此转场必须单独观察完成，
+        /// 否则转场期间到达的请求会一直等到下一次导航事件。
         func observeBlockingPresentation(for placement: LYRoutePlacement) {
             guard let host else { return }
             let domains = currentDomain + targetDomain(for: placement)
+            if let transition = host.routerRootViewController?.transitionCoordinator
+                ?? domains.lazy.compactMap(\.transitionCoordinator).first {
+                observePendingTransition(transition)
+            }
             let presenters = [host.routerRootViewController].compactMap(\.self)
                 + domains.flatMap { [$0 as UIViewController] + $0.viewControllers }
             guard var presented = presenters.compactMap(\.presentedViewController).first else { return }
@@ -250,6 +258,24 @@
             modalObserver?.detach()
             modalObserver = PresentationRemovalObserver(presentation: presentation) { [weak self] in
                 self?.navigationDidStabilize()
+            }
+        }
+
+        /// 转场完成或取消后投递一次等待请求；UIKit 在完成回调之后才清除协调器，所以经由下一轮任务再尝试。
+        private func observePendingTransition(_ transition: any UIViewControllerTransitionCoordinator) {
+            let identity = ObjectIdentifier(transition as AnyObject)
+            guard pendingTransitionID != identity else { return }
+            pendingTransitionID = identity
+            let epoch = generation
+            let observed = transition.animate(alongsideTransition: nil) { [weak self] _ in
+                guard let self, pendingTransitionID == identity else { return }
+                pendingTransitionID = nil
+                guard isCurrent(epoch) else { return }
+                drainPendingAfterNavigationEvent()
+            }
+            if !observed {
+                pendingTransitionID = nil
+                drainPendingAfterNavigationEvent()
             }
         }
     }
