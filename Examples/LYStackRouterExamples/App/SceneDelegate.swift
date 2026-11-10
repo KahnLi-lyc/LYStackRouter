@@ -34,6 +34,8 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             fatalError("路由表无效：\(error)")
         }
         let assembly = "组装：\(DemoAssembly.mode.rawValue) · 模块：\(router.moduleIDs.joined(separator: ","))"
+        // 输出组装结果，便于在 Release 构建中确认自动发现没有被链接器裁掉。
+        print("LYStackRouterExamples \(assembly)")
         let me = MeViewController(metrics: metrics, assembly: assembly)
         tabBar.viewControllers = [
             Self.tab(home, title: "首页", image: "house"),

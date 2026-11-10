@@ -27,5 +27,6 @@
 
 - 任何行为变更都要补测试；修复缺陷先写能复现的失败用例。
 - 提交前运行：`swift build`、`swift test`（macOS，含宏展开测试）、iOS Simulator 上的 `xcodebuild test -scheme LYStackRouter-Package -skip-testing:LYStackRouterMacrosTests`（宏测试只能在 macOS 宿主运行）、`swiftformat --lint .`。
+- 改动引擎、宿主或自动发现时，另在 iOS Simulator 上运行示例工程测试：`xcodebuild test -project Examples/LYStackRouterExamples.xcodeproj -scheme LYStackRouterExamples`（宿主内引擎测试与 UI 测试）。
 - 改动公开 API 时同步更新 `Examples/` 与 README；修改 `Examples/project.yml` 后用 `xcodegen generate` 重新生成工程并一起提交。
 - 提交信息使用简体中文，前缀为 `feat:`、`fix:`、`test:`、`docs:`、`refactor:`、`chore:`。

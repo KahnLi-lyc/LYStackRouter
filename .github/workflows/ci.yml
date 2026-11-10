@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SWIFTFORMAT_VERSION: 0.59.1
+
+jobs:
+  macos:
+    name: swift test (macOS)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      # 自动发现需要 Swift 6.3+（@used / @section）：选用 runner 上最新的 Xcode，并在版本不足时尽早失败。
+      - name: Select Xcode
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          swift --version
+          swift --version 2>&1 | python3 -c "import re,sys; v=re.search(r'Swift version (\d+)\.(\d+)', sys.stdin.read()); sys.exit(0 if v and (int(v[1]), int(v[2])) >= (6, 3) else 'Swift 6.3+ required')"
+      # 严格并发检查下零警告：出现 warning 即失败。
+      - name: Build with strict concurrency
+        run: |
+          swift build -Xswiftc -strict-concurrency=complete 2>&1 | tee build.log
+          ! grep -E "warning:" build.log
+      # Core 与宏展开测试；引擎与自动发现依赖 UIKit，在 iOS job 中运行。
+      - name: Test
+        run: swift test
+
+  ios:
+    name: Build & Test (iOS Simulator)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+
+      # 只从 xcodebuild 认可的目的地里选；CoreSimulator 首次唤起可能返回空列表，重试后回退到 simctl。
+      - name: Resolve simulator
+        id: sim
+        run: |
+          UDID=""
+          for attempt in 1 2 3 4 5; do
+            DEST=$(xcodebuild -scheme LYStackRouter-Package -showdestinations 2>/dev/null \
+              | grep "platform:iOS Simulator" | grep "name:iPhone" | grep -v "placeholder" | head -1 || true)
+            if [ -n "$DEST" ]; then
+              UDID=$(echo "$DEST" | sed -E 's/.*id:([0-9A-F-]+).*/\1/')
+              break
+            fi
+            sleep 10
+          done
+          if [ -z "$UDID" ]; then
+            UDID=$(xcrun simctl list devices available -j \
+              | python3 -c "import sys, json; d = json.load(sys.stdin)['devices']; ids = [dev['udid'] for rt, devs in d.items() if 'iOS' in rt for dev in devs if dev['name'].startswith('iPhone')]; print(ids[-1] if ids else '')")
+          fi
+          test -n "$UDID"
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+
+      # 宏测试只能在 macOS 宿主运行，已在 macOS job 覆盖。
+      - name: Package tests
+        run: |
+          xcodebuild test \
+            -scheme LYStackRouter-Package \
+            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" \
+            -skip-testing:LYStackRouterMacrosTests \
+            CODE_SIGNING_ALLOWED=NO
+        env:
+          NSUnbufferedIO: YES
+
+      # 宿主内引擎测试需要真实窗口；UI 测试耗时较长，在本地运行。
+      - name: Example hosted tests
+        run: |
+          xcodebuild test \
+            -project Examples/LYStackRouterExamples.xcodeproj \
+            -scheme LYStackRouterExamples \
+            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" \
+            -only-testing:LYStackRouterExamplesTests \
+            CODE_SIGNING_ALLOWED=NO
+        env:
+          NSUnbufferedIO: YES
+
+  lint:
+    name: SwiftFormat
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned SwiftFormat
+        run: |
+          mkdir -p "$HOME/tools" && cd "$HOME/tools"
+          curl -sSL -o swiftformat.zip \
+            "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat.zip"
+          unzip -q -o swiftformat.zip && chmod +x swiftformat
+          echo "$HOME/tools" >> "$GITHUB_PATH"
+      - name: SwiftFormat (lint)
+        run: swiftformat --version && swiftformat --lint .
