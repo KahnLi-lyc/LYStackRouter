@@ -232,7 +232,7 @@
 
         func testRejectedConfirmationReleasesExecution() throws {
             var late: (@MainActor () -> Void)?
-            router.confirmationPresenter = { _, _, onPresented in
+            router.confirmationPresenter = { _, _, _, onPresented in
                 late = onPresented
                 return false
             }
@@ -251,7 +251,7 @@
 
         func testPresentedConfirmationSettlesAwaiting() {
             var presented: (@MainActor () -> Void)?
-            router.confirmationPresenter = { _, _, onPresented in
+            router.confirmationPresenter = { _, _, _, onPresented in
                 presented = onPresented
                 return true
             }

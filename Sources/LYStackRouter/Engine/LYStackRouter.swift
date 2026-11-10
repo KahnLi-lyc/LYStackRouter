@@ -40,9 +40,14 @@
         var transitionRemovals: [UUID: [UIViewController]] = [:]
         var transitionWaiters: [UUID: CheckedContinuation<Void, Never>] = [:]
 
-        /// 确认框的展示方式；返回 false 表示 UIKit 没有接受展示。测试可替换。
-        var confirmationPresenter: (UIAlertController, UINavigationController, @escaping @MainActor () -> Void) -> Bool = {
-            alert, navigation, onPresented in
+        /// 确认框的展示方式；返回 false 表示 UIKit 没有接受展示。
+        /// 参数依次为确认框、导航栈、确认动作（与确认按钮相同）、展示完成回调。测试可替换以直接触发确认。
+        var confirmationPresenter: (
+            UIAlertController,
+            UINavigationController,
+            @escaping @MainActor () -> Void,
+            @escaping @MainActor () -> Void
+        ) -> Bool = { alert, navigation, _, onPresented in
             // UIKit 在主线程调用展示完成回调。
             navigation.present(alert, animated: true) { MainActor.assumeIsolated { onPresented() } }
             return alert.presentingViewController != nil

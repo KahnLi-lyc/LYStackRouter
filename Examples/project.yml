@@ -1,0 +1,61 @@
+name: LYStackRouterExamples
+options:
+  bundleIdPrefix: com.kahnli
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+packages:
+  LYStackRouter:
+    path: ..
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGNING_ALLOWED: "NO"
+
+targets:
+  LYStackRouterExamples:
+    type: application
+    platform: iOS
+    sources:
+      - path: LYStackRouterExamples
+    dependencies:
+      - package: LYStackRouter
+        product: LYStackRouter
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.kahnli.LYStackRouterExamples
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+
+  LYStackRouterExamplesTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: LYStackRouterExamplesTests
+      # 复用包内引擎测试的假路由、假模块与假页面。
+      - path: ../Tests/LYStackRouterTests/EngineFixtures.swift
+    dependencies:
+      - target: LYStackRouterExamples
+      - package: LYStackRouter
+        product: LYStackRouter
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.kahnli.LYStackRouterExamplesTests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/LYStackRouterExamples.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/LYStackRouterExamples
+        BUNDLE_LOADER: $(TEST_HOST)
+
+schemes:
+  LYStackRouterExamples:
+    build:
+      targets:
+        LYStackRouterExamples: all
+        LYStackRouterExamplesTests: [test]
+    test:
+      targets:
+        - LYStackRouterExamplesTests

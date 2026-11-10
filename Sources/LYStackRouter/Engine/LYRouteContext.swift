@@ -118,8 +118,7 @@
             alert.addAction(UIAlertAction(title: cancelTitle, style: .cancel) { _ in state.handled = true })
             let route = route
             let source = source
-            alert.addAction(UIAlertAction(title: confirmTitle, style: isDestructive ? .destructive : .default) {
-                [weak router, weak navigation, weak origin, weak alert] _ in
+            let confirmAction: @MainActor () -> Void = { [weak router, weak navigation, weak origin, weak alert] in
                 guard !state.handled else { return }
                 state.handled = true
                 Task { @MainActor [weak router, weak navigation, weak origin, weak alert] in
@@ -136,8 +135,11 @@
                     }
                     router.performUserNavigation(route: route, source: source, onConfirm)
                 }
+            }
+            alert.addAction(UIAlertAction(title: confirmTitle, style: isDestructive ? .destructive : .default) { _ in
+                confirmAction()
             })
-            let accepted = router.confirmationPresenter(alert, navigation) { [weak router] in
+            let accepted = router.confirmationPresenter(alert, navigation, confirmAction) { [weak router] in
                 router?.confirmationDidPresent(execution)
             }
             if accepted {
