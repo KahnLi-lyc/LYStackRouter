@@ -10,7 +10,7 @@
         public let tabBarController: UITabBarController
         /// 目标域到 Tab 序号的映射。
         public let placements: [LYRoutePlacement: Int]
-        /// 当前会话标识；变化后请调用 `router.resetSession()`。
+        /// 当前会话标识；变化后请调用 `router.sessionDidChange()`。
         public var sessionID: String?
         /// 是否允许导航。
         public var isReady = true

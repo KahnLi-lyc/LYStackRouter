@@ -5,10 +5,10 @@
     ///
     /// 库内提供 `LYSingleStackHost`（单个导航栈）与 `LYTabBarHost`（标准 TabBar）。
     /// 自定义宿主（例如分栏容器、自研 TabBar）需要在导航栈的 `didShow` 回调中调用
-    /// `router.navigationDidShow(in:)`，并在会话变化时调用 `router.resetSession()`。
+    /// `router.navigationDidShow(in:)`，并在会话变化时调用 `router.sessionDidChange()`。
     @MainActor
     public protocol LYRouterHost: AnyObject {
-        /// 当前会话标识，例如登录账号。nil 表示无会话。会话变化时宿主须调用 `router.resetSession()`。
+        /// 当前会话标识，例如登录账号。nil 表示无会话。会话变化时宿主须调用 `router.sessionDidChange()`。
         var routerSessionID: String? { get }
         /// 宿主是否允许业务导航，例如根视图已完成展示。
         var isRouterReady: Bool { get }

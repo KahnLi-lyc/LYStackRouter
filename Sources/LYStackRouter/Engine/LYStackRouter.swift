@@ -25,6 +25,9 @@
         let fallback: LYRouteFallback<Route>?
 
         weak var host: (any LYRouterHost)?
+        /// 最近一次确认的会话标识，用于区分“登录”（nil → A）与“切换账号”（A → B）。
+        var knownSessionID: String?
+        let allowsUnregistered: Bool
         var generation = UUID()
         var currentExecution: NavigationExecution?
         var stopped = false
@@ -61,9 +64,11 @@
             rewrite: LYRouteRewrite,
             interceptors: [LYRouteInterceptor<Route>],
             observers: [any LYRouteObserver<Route>],
-            fallback: LYRouteFallback<Route>?
+            fallback: LYRouteFallback<Route>?,
+            allowsUnregistered: Bool
         ) {
             self.registry = registry
+            self.allowsUnregistered = allowsUnregistered
             self.urlConfiguration = urlConfiguration
             self.rewrite = rewrite
             self.interceptors = interceptors
@@ -81,7 +86,9 @@
         ///   - observers: 只读观察者。
         ///   - url: URL 入口配置。
         ///   - rewrite: 初始重写与降级配置。
-        ///   - fallback: 兜底。提供兜底时允许路由种类未被注册（非穷尽构建）；为 nil 时要求每个种类都被注册。
+        ///   - fallback: 兜底，用于占位、降级路由；`allowsUnregistered` 为 true 时也处理未注册的路由。
+        ///   - allowsUnregistered: 是否允许路由种类未被注册。默认 false：任何种类缺少注册都会让构建失败，
+        ///     自动发现漏掉模块时也能立即发现。模块 Demo 只装部分模块时设为 true，并提供兜底。
         public static func build(
             host: (any LYRouterHost)? = nil,
             modules: LYRouteModuleSet<Route>,
@@ -90,7 +97,8 @@
             observers: [any LYRouteObserver<Route>] = [],
             url: LYURLConfiguration? = nil,
             rewrite: LYRouteRewrite = .none,
-            fallback: LYRouteFallback<Route>? = nil
+            fallback: LYRouteFallback<Route>? = nil,
+            allowsUnregistered: Bool = false
         ) throws -> LYStackRouter {
             let types = modules.resolve()
             var seen: [String: Int] = [:]
@@ -116,14 +124,15 @@
                 builder.moduleID = type.moduleID
                 module.register(into: &builder)
             }
-            let registry = try builder.build(requireExhaustive: fallback == nil)
+            let registry = try builder.build(requireExhaustive: !allowsUnregistered)
             let router = LYStackRouter(
                 registry: registry,
                 urlConfiguration: url,
                 rewrite: rewrite,
                 interceptors: interceptors,
                 observers: observers,
-                fallback: fallback
+                fallback: fallback,
+                allowsUnregistered: allowsUnregistered
             )
             if let host { router.attach(host) }
             return router
@@ -136,6 +145,7 @@
             guard !stopped else { return }
             if let old = self.host, old !== host { detach(old) }
             self.host = host
+            knownSessionID = host.routerSessionID
             if let source = host as? LYNavigationEventSource {
                 source.onNavigationDidShow = { [weak self] navigation in self?.navigationDidShow(in: navigation) }
             }
@@ -150,9 +160,29 @@
             self.host = nil
         }
 
-        /// 会话变化（例如退出登录、切换账号）时调用：清空外部等待请求，使进行中的导航作废。
+        /// 宿主会话变化后调用。
+        ///
+        /// - 从无会话变为有会话（登录）：保留等待中的外部请求并绑定到新会话，随后尝试执行。
+        /// - 从一个会话变为另一个会话，或退出登录：等同 `resetSession()`，清空等待请求。
+        /// 两种情况都会使进行中的导航作废。
+        public func sessionDidChange() {
+            let current = host?.routerSessionID
+            guard current != knownSessionID else { return }
+            let previous = knownSessionID
+            knownSessionID = current
+            if previous == nil, let current {
+                if pending?.sessionID == nil { pending?.sessionID = current }
+                invalidateExecution()
+                navigationDidStabilize()
+            } else {
+                resetSession()
+            }
+        }
+
+        /// 无条件清空外部等待请求，并使进行中的导航作废。退出登录、切换账号时使用。
         public func resetSession() {
             pending = nil
+            knownSessionID = host?.routerSessionID
             invalidateExecution()
         }
 

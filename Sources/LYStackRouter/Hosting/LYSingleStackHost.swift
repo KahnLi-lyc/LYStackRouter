@@ -8,7 +8,7 @@
 
         /// 宿主拥有的导航栈。
         public let navigationController: UINavigationController
-        /// 当前会话标识；变化后请调用 `router.resetSession()`。
+        /// 当前会话标识；变化后请调用 `router.sessionDidChange()`。
         public var sessionID: String?
         /// 是否允许导航。
         public var isReady = true

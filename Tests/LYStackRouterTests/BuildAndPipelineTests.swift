@@ -43,10 +43,23 @@
                 host: host,
                 modules: .explicit([CommunityModule.self]),
                 environment: makeEnvironment(),
-                fallback: .placeholder
+                fallback: .placeholder,
+                allowsUnregistered: true
             )
             XCTAssertEqual(router.request(.chat("s1")), .created)
             XCTAssertTrue(host.navigationController.topViewController is LYRoutePlaceholderViewController)
+        }
+
+        func testFallbackAloneDoesNotDisableExhaustiveCheck() {
+            XCTAssertThrowsError(
+                try LYStackRouter<AppRoute>.build(
+                    modules: .explicit([CommunityModule.self]),
+                    environment: makeEnvironment(),
+                    fallback: .placeholder
+                )
+            ) { error in
+                XCTAssertEqual(error as? LYRouteBuildError, .missingRegistration(["chat", "room", "slowChat"]))
+            }
         }
 
         func testRewriteDisablesKindWithoutFallback() throws {

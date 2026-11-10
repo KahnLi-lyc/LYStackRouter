@@ -17,7 +17,7 @@
             guard !stopped else { return settled(kind, source, .failed(.stopped)) }
 
             guard let entry = registry.entries[kind] else {
-                guard let fallback else { return settled(kind, source, .failed(.unregistered)) }
+                guard allowsUnregistered, let fallback else { return settled(kind, source, .failed(.unregistered)) }
                 return admit(route, source, placement: .current, proposed: .failed(.unregistered)) { context in
                     fallback.handle(route, .unregistered, context)
                 }
@@ -116,7 +116,7 @@
         func continueNavigation(to route: Route, source: LYRouteSource) {
             guard let execution = currentExecution, isCurrent(execution) else { return }
             guard let entry = registry.entries[route.kind] else {
-                if let fallback {
+                if allowsUnregistered, let fallback {
                     fallback.handle(route, .unregistered, LYRouteContext(router: self, route: route, source: source))
                 } else {
                     markResult(.failed(.unregistered))

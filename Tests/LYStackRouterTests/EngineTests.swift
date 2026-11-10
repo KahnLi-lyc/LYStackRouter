@@ -168,6 +168,31 @@
             XCTAssertEqual(pages(home), [nil, .club("c")])
         }
 
+        func testExternalRequestDeferredBySessionRunsAfterSignIn() async {
+            let deferred = await router.open(.wallet, source: .push)
+            XCTAssertEqual(deferred, .deferred)
+            signedIn = true
+            host.sessionID = "u1"
+            router.sessionDidChange()
+            await waitUntil { !self.router.isNavigating && self.router.pending == nil }
+            XCTAssertNil(router.pending, "登录后等待请求被执行")
+        }
+
+        func testSwitchingAccountDropsWaitingRequest() async {
+            host.sessionID = "a"
+            router.sessionDidChange()
+            host.isReady = false
+            _ = await router.open(.club("x"), source: .push)
+            XCTAssertNotNil(router.pending)
+            host.sessionID = "b"
+            router.sessionDidChange()
+            XCTAssertNil(router.pending)
+            host.isReady = true
+            router.navigationDidStabilize()
+            await Task.yield()
+            XCTAssertEqual(home.viewControllers.count, 1)
+        }
+
         func testSessionResetDropsWaitingRequest() async {
             host.isReady = false
             _ = await router.open(.club("a"), source: .push)

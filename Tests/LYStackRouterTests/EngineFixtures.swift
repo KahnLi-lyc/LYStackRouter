@@ -102,7 +102,7 @@
             builder.page(.settings, policy: .init(placement: LYRoutePlacement("me"), allowsExternal: true)) { _, context in
                 context.show { TestPage(nil, title: "settings") }
             }
-            builder.action(.wallet, policy: .init(requiresSession: true)) { _, context in
+            builder.action(.wallet, policy: .init(allowsExternal: true, requiresSession: true)) { _, context in
                 context.markPerformed()
             }
         }
