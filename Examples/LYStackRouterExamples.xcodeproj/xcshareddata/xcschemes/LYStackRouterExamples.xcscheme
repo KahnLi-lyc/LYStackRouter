@@ -35,6 +35,20 @@
                ReferencedContainer = "container:LYStackRouterExamples.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "A1479E3D6F402A982A30203C"
+               BuildableName = "LYStackRouterExamplesUITests.xctest"
+               BlueprintName = "LYStackRouterExamplesUITests"
+               ReferencedContainer = "container:LYStackRouterExamples.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -61,6 +75,17 @@
                BlueprintIdentifier = "032B12C2D79B22CA22EBB762"
                BuildableName = "LYStackRouterExamplesTests.xctest"
                BlueprintName = "LYStackRouterExamplesTests"
+               ReferencedContainer = "container:LYStackRouterExamples.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "A1479E3D6F402A982A30203C"
+               BuildableName = "LYStackRouterExamplesUITests.xctest"
+               BlueprintName = "LYStackRouterExamplesUITests"
                ReferencedContainer = "container:LYStackRouterExamples.xcodeproj">
             </BuildableReference>
          </TestableReference>

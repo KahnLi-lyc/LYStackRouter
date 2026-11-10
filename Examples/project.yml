@@ -8,6 +8,8 @@ options:
 packages:
   LYStackRouter:
     path: ..
+  DemoFeatures:
+    path: DemoFeatures
 
 settings:
   base:
@@ -21,9 +23,21 @@ targets:
     platform: iOS
     sources:
       - path: LYStackRouterExamples
+    info:
+      path: LYStackRouterExamples/Info.plist
+      properties:
+        CFBundleURLTypes:
+          - CFBundleURLName: com.kahnli.LYStackRouterExamples
+            CFBundleURLSchemes: [lydemo]
     dependencies:
       - package: LYStackRouter
-        product: LYStackRouter
+        product: LYStackRouterDiscovery
+      - package: DemoFeatures
+        product: DemoRoutes
+      - package: DemoFeatures
+        product: DemoCommunity
+      - package: DemoFeatures
+        product: DemoMessages
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.kahnli.LYStackRouterExamples
@@ -35,6 +49,8 @@ targets:
   LYStackRouterExamplesTests:
     type: bundle.unit-test
     platform: iOS
+    # Xcode 27 的 XCTest 最低支持 iOS 17；App 本身仍为 iOS 16。
+    deploymentTarget: "17.0"
     sources:
       - path: LYStackRouterExamplesTests
       # 复用包内引擎测试的假路由、假模块与假页面。
@@ -50,12 +66,29 @@ targets:
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/LYStackRouterExamples.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/LYStackRouterExamples
         BUNDLE_LOADER: $(TEST_HOST)
 
+  LYStackRouterExamplesUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    # Xcode 27 的 XCTest 最低支持 iOS 17；App 本身仍为 iOS 16。
+    deploymentTarget: "17.0"
+    sources:
+      - path: LYStackRouterExamplesUITests
+    dependencies:
+      - target: LYStackRouterExamples
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.kahnli.LYStackRouterExamplesUITests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: LYStackRouterExamples
+
 schemes:
   LYStackRouterExamples:
     build:
       targets:
         LYStackRouterExamples: all
         LYStackRouterExamplesTests: [test]
+        LYStackRouterExamplesUITests: [test]
     test:
       targets:
         - LYStackRouterExamplesTests
+        - LYStackRouterExamplesUITests

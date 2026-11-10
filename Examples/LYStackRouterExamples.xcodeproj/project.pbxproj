@@ -7,12 +7,21 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0A561235A45CE0EC2C506048 /* DemoHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10A1D853E5D49B2261683B2D /* DemoHost.swift */; };
+		323E7C713F1C0DBE3E6643CB /* MeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F385B5775890BBD435AAF50C /* MeViewController.swift */; };
 		36E414291A1BBCD172452A96 /* EngineFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 818AFC598FF4AFB5E82F866F /* EngineFixtures.swift */; };
+		4FC4A011A9A8305B1CE7028A /* DemoCommunity in Frameworks */ = {isa = PBXBuildFile; productRef = 880764DCB6F8ED592D1097AC /* DemoCommunity */; };
 		5854D499206312C662EC9E0E /* HostedTransitionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55125923E4A2A95F8CB6BF69 /* HostedTransitionTests.swift */; };
-		88B83B2C0E72B221E461A753 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BC82FCAAB952F689EC173D3 /* SceneDelegate.swift */; };
-		8AF9909D8876FD2A6FDA4EA0 /* LYStackRouter in Frameworks */ = {isa = PBXBuildFile; productRef = A179E99A6FE73F52D8E082CB /* LYStackRouter */; };
-		B4BDA5495291AEA90524C542 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8B237BF9C41A2E8F18F5B7A /* AppDelegate.swift */; };
+		6AE11A0D08B1D5B92D400CC7 /* AccountRouteModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36B2FBBB42DF417B2CD9E879 /* AccountRouteModule.swift */; };
+		8AF9909D8876FD2A6FDA4EA0 /* LYStackRouterDiscovery in Frameworks */ = {isa = PBXBuildFile; productRef = 18C6705EEAB95B83CEB086D0 /* LYStackRouterDiscovery */; };
+		A9DE92D48E426B9D1DCF362A /* DemoRoutes in Frameworks */ = {isa = PBXBuildFile; productRef = 5F0E15626D772AEA5091572F /* DemoRoutes */; };
+		BBDE6E2F92CA392CAF5F1AE2 /* DemoMessages in Frameworks */ = {isa = PBXBuildFile; productRef = 0A43B45052B180A38FFF9F44 /* DemoMessages */; };
+		C1327E5E5F99F62EF96B63CA /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7597FC7C260117BAB608D513 /* SceneDelegate.swift */; };
 		CC45D50F921AACFD622C6DF9 /* LYStackRouter in Frameworks */ = {isa = PBXBuildFile; productRef = BD11589B89FCDA02CAF42CF8 /* LYStackRouter */; };
+		D6A8AAD7D047B888EEE10C39 /* RoutingUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FB25D4C6E38936F82B396FB /* RoutingUITests.swift */; };
+		D7F382A7DBE7E8717EDADC9A /* HomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85072EBF6670374768909709 /* HomeViewController.swift */; };
+		E3A24585059707207DA8E3F2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56934BA072F8E3F34279739B /* AppDelegate.swift */; };
+		F5C640032B7E0F24CEC045CF /* DemoAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F0984821CF3BC6F1508C52C /* DemoAssembly.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -23,16 +32,32 @@
 			remoteGlobalIDString = B4BDDBCCCD8C84EFAECC3B38;
 			remoteInfo = LYStackRouterExamples;
 		};
+		5B587A349A66BCBFDADB8A12 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 69A201361F35075B5C52BC87 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B4BDDBCCCD8C84EFAECC3B38;
+			remoteInfo = LYStackRouterExamples;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0FB25D4C6E38936F82B396FB /* RoutingUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutingUITests.swift; sourceTree = "<group>"; };
+		10A1D853E5D49B2261683B2D /* DemoHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoHost.swift; sourceTree = "<group>"; };
+		36B2FBBB42DF417B2CD9E879 /* AccountRouteModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountRouteModule.swift; sourceTree = "<group>"; };
 		55125923E4A2A95F8CB6BF69 /* HostedTransitionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostedTransitionTests.swift; sourceTree = "<group>"; };
-		5BC82FCAAB952F689EC173D3 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		56934BA072F8E3F34279739B /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		68E832CFB7277084362CDF0C /* LYStackRouter */ = {isa = PBXFileReference; lastKnownFileType = folder; name = LYStackRouter; path = ..; sourceTree = SOURCE_ROOT; };
+		7597FC7C260117BAB608D513 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		818AFC598FF4AFB5E82F866F /* EngineFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineFixtures.swift; sourceTree = "<group>"; };
+		85072EBF6670374768909709 /* HomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewController.swift; sourceTree = "<group>"; };
+		8F0984821CF3BC6F1508C52C /* DemoAssembly.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoAssembly.swift; sourceTree = "<group>"; };
 		9B8B321C3E9976BE554CA613 /* LYStackRouterExamplesTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LYStackRouterExamplesTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9DD0D3E2DC539E48B0087414 /* LYStackRouterExamplesUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LYStackRouterExamplesUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B219BA752BC64DC5E330898D /* LYStackRouterExamples.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LYStackRouterExamples.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		F8B237BF9C41A2E8F18F5B7A /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		F26465C0D5FE20704F678247 /* DemoFeatures */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DemoFeatures; path = DemoFeatures; sourceTree = SOURCE_ROOT; };
+		F385B5775890BBD435AAF50C /* MeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeViewController.swift; sourceTree = "<group>"; };
+		F565AFC36AFA6955EDABA82F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -48,19 +73,39 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8AF9909D8876FD2A6FDA4EA0 /* LYStackRouter in Frameworks */,
+				8AF9909D8876FD2A6FDA4EA0 /* LYStackRouterDiscovery in Frameworks */,
+				A9DE92D48E426B9D1DCF362A /* DemoRoutes in Frameworks */,
+				4FC4A011A9A8305B1CE7028A /* DemoCommunity in Frameworks */,
+				BBDE6E2F92CA392CAF5F1AE2 /* DemoMessages in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0CC941EE08A84F1921F5516A /* LYStackRouterExamplesUITests */ = {
+			isa = PBXGroup;
+			children = (
+				0FB25D4C6E38936F82B396FB /* RoutingUITests.swift */,
+			);
+			path = LYStackRouterExamplesUITests;
+			sourceTree = "<group>";
+		};
 		1177E506257D166645B64544 /* Packages */ = {
 			isa = PBXGroup;
 			children = (
+				F26465C0D5FE20704F678247 /* DemoFeatures */,
 				68E832CFB7277084362CDF0C /* LYStackRouter */,
 			);
 			name = Packages;
+			sourceTree = "<group>";
+		};
+		1FA4359E587A61201C7ED24D /* Hosting */ = {
+			isa = PBXGroup;
+			children = (
+				10A1D853E5D49B2261683B2D /* DemoHost.swift */,
+			);
+			path = Hosting;
 			sourceTree = "<group>";
 		};
 		57C9923DD74C39816757D35D /* LYStackRouter */ = {
@@ -75,8 +120,11 @@
 		6D28CA827EB11744E59003E3 /* LYStackRouterExamples */ = {
 			isa = PBXGroup;
 			children = (
-				F8B237BF9C41A2E8F18F5B7A /* AppDelegate.swift */,
-				5BC82FCAAB952F689EC173D3 /* SceneDelegate.swift */,
+				F565AFC36AFA6955EDABA82F /* Info.plist */,
+				988CAA47553B22F33877C388 /* Account */,
+				E423566D97444D627BED708B /* App */,
+				1FA4359E587A61201C7ED24D /* Hosting */,
+				8A2CDB7C4E517635E11DCD08 /* Pages */,
 			);
 			path = LYStackRouterExamples;
 			sourceTree = "<group>";
@@ -86,8 +134,18 @@
 			children = (
 				B219BA752BC64DC5E330898D /* LYStackRouterExamples.app */,
 				9B8B321C3E9976BE554CA613 /* LYStackRouterExamplesTests.xctest */,
+				9DD0D3E2DC539E48B0087414 /* LYStackRouterExamplesUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		8A2CDB7C4E517635E11DCD08 /* Pages */ = {
+			isa = PBXGroup;
+			children = (
+				85072EBF6670374768909709 /* HomeViewController.swift */,
+				F385B5775890BBD435AAF50C /* MeViewController.swift */,
+			);
+			path = Pages;
 			sourceTree = "<group>";
 		};
 		8A5BEBE481767FF7BDE7390A /* Tests */ = {
@@ -98,12 +156,21 @@
 			path = Tests;
 			sourceTree = "<group>";
 		};
+		988CAA47553B22F33877C388 /* Account */ = {
+			isa = PBXGroup;
+			children = (
+				36B2FBBB42DF417B2CD9E879 /* AccountRouteModule.swift */,
+			);
+			path = Account;
+			sourceTree = "<group>";
+		};
 		A3D138CBD84A143B9600CE33 = {
 			isa = PBXGroup;
 			children = (
 				57C9923DD74C39816757D35D /* LYStackRouter */,
 				6D28CA827EB11744E59003E3 /* LYStackRouterExamples */,
 				B35ECA362966D59F95D959B0 /* LYStackRouterExamplesTests */,
+				0CC941EE08A84F1921F5516A /* LYStackRouterExamplesUITests */,
 				1177E506257D166645B64544 /* Packages */,
 				8214100B4CAEF3683CB1B3E8 /* Products */,
 			);
@@ -123,6 +190,16 @@
 				55125923E4A2A95F8CB6BF69 /* HostedTransitionTests.swift */,
 			);
 			path = LYStackRouterExamplesTests;
+			sourceTree = "<group>";
+		};
+		E423566D97444D627BED708B /* App */ = {
+			isa = PBXGroup;
+			children = (
+				56934BA072F8E3F34279739B /* AppDelegate.swift */,
+				8F0984821CF3BC6F1508C52C /* DemoAssembly.swift */,
+				7597FC7C260117BAB608D513 /* SceneDelegate.swift */,
+			);
+			path = App;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -148,6 +225,24 @@
 			productReference = 9B8B321C3E9976BE554CA613 /* LYStackRouterExamplesTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		A1479E3D6F402A982A30203C /* LYStackRouterExamplesUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 331383CE612C424EF548D6C6 /* Build configuration list for PBXNativeTarget "LYStackRouterExamplesUITests" */;
+			buildPhases = (
+				6D680A0129D1D27D39FC6010 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CC23D00B82643FC3919CD1F6 /* PBXTargetDependency */,
+			);
+			name = LYStackRouterExamplesUITests;
+			packageProductDependencies = (
+			);
+			productName = LYStackRouterExamplesUITests;
+			productReference = 9DD0D3E2DC539E48B0087414 /* LYStackRouterExamplesUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		B4BDDBCCCD8C84EFAECC3B38 /* LYStackRouterExamples */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 3CBF2A46D2D04E90B8589B87 /* Build configuration list for PBXNativeTarget "LYStackRouterExamples" */;
@@ -161,7 +256,10 @@
 			);
 			name = LYStackRouterExamples;
 			packageProductDependencies = (
-				A179E99A6FE73F52D8E082CB /* LYStackRouter */,
+				18C6705EEAB95B83CEB086D0 /* LYStackRouterDiscovery */,
+				5F0E15626D772AEA5091572F /* DemoRoutes */,
+				880764DCB6F8ED592D1097AC /* DemoCommunity */,
+				0A43B45052B180A38FFF9F44 /* DemoMessages */,
 			);
 			productName = LYStackRouterExamples;
 			productReference = B219BA752BC64DC5E330898D /* LYStackRouterExamples.app */;
@@ -179,6 +277,10 @@
 					032B12C2D79B22CA22EBB762 = {
 						ProvisioningStyle = Automatic;
 					};
+					A1479E3D6F402A982A30203C = {
+						ProvisioningStyle = Automatic;
+						TestTargetID = B4BDDBCCCD8C84EFAECC3B38;
+					};
 					B4BDDBCCCD8C84EFAECC3B38 = {
 						ProvisioningStyle = Automatic;
 					};
@@ -194,6 +296,7 @@
 			mainGroup = A3D138CBD84A143B9600CE33;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				1D5C066359AA3879D6A1D2DE /* XCLocalSwiftPackageReference "DemoFeatures" */,
 				CE03E696F7271D83332ED6BA /* XCLocalSwiftPackageReference ".." */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -203,6 +306,7 @@
 			targets = (
 				B4BDDBCCCD8C84EFAECC3B38 /* LYStackRouterExamples */,
 				032B12C2D79B22CA22EBB762 /* LYStackRouterExamplesTests */,
+				A1479E3D6F402A982A30203C /* LYStackRouterExamplesUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -212,8 +316,21 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B4BDA5495291AEA90524C542 /* AppDelegate.swift in Sources */,
-				88B83B2C0E72B221E461A753 /* SceneDelegate.swift in Sources */,
+				6AE11A0D08B1D5B92D400CC7 /* AccountRouteModule.swift in Sources */,
+				E3A24585059707207DA8E3F2 /* AppDelegate.swift in Sources */,
+				F5C640032B7E0F24CEC045CF /* DemoAssembly.swift in Sources */,
+				0A561235A45CE0EC2C506048 /* DemoHost.swift in Sources */,
+				D7F382A7DBE7E8717EDADC9A /* HomeViewController.swift in Sources */,
+				323E7C713F1C0DBE3E6643CB /* MeViewController.swift in Sources */,
+				C1327E5E5F99F62EF96B63CA /* SceneDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6D680A0129D1D27D39FC6010 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D6A8AAD7D047B888EEE10C39 /* RoutingUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -229,6 +346,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		CC23D00B82643FC3919CD1F6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B4BDDBCCCD8C84EFAECC3B38 /* LYStackRouterExamples */;
+			targetProxy = 5B587A349A66BCBFDADB8A12 /* PBXContainerItemProxy */;
+		};
 		D5CEAEAC764785AD6AF26401 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = B4BDDBCCCD8C84EFAECC3B38 /* LYStackRouterExamples */;
@@ -242,6 +364,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -253,6 +376,24 @@
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LYStackRouterExamples.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/LYStackRouterExamples";
 			};
 			name = Debug;
+		};
+		3A07780696ECDB15B9468BBB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.kahnli.LYStackRouterExamplesUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = LYStackRouterExamples;
+			};
+			name = Release;
 		};
 		40DEDD55EFD1CEBF353AF196 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -317,6 +458,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -328,6 +470,24 @@
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LYStackRouterExamples.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/LYStackRouterExamples";
 			};
 			name = Release;
+		};
+		5B51B84800181873C9CBA8C8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.kahnli.LYStackRouterExamplesUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = LYStackRouterExamples;
+			};
+			name = Debug;
 		};
 		8E0BC51409E8EEA384576E15 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -400,6 +560,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LYStackRouterExamples/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -419,6 +580,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LYStackRouterExamples/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -435,6 +597,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		331383CE612C424EF548D6C6 /* Build configuration list for PBXNativeTarget "LYStackRouterExamplesUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5B51B84800181873C9CBA8C8 /* Debug */,
+				3A07780696ECDB15B9468BBB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		3CBF2A46D2D04E90B8589B87 /* Build configuration list for PBXNativeTarget "LYStackRouterExamples" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -465,6 +636,10 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
+		1D5C066359AA3879D6A1D2DE /* XCLocalSwiftPackageReference "DemoFeatures" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = DemoFeatures;
+		};
 		CE03E696F7271D83332ED6BA /* XCLocalSwiftPackageReference ".." */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ..;
@@ -472,9 +647,21 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		A179E99A6FE73F52D8E082CB /* LYStackRouter */ = {
+		0A43B45052B180A38FFF9F44 /* DemoMessages */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = LYStackRouter;
+			productName = DemoMessages;
+		};
+		18C6705EEAB95B83CEB086D0 /* LYStackRouterDiscovery */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = LYStackRouterDiscovery;
+		};
+		5F0E15626D772AEA5091572F /* DemoRoutes */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DemoRoutes;
+		};
+		880764DCB6F8ED592D1097AC /* DemoCommunity */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DemoCommunity;
 		};
 		BD11589B89FCDA02CAF42CF8 /* LYStackRouter */ = {
 			isa = XCSwiftPackageProductDependency;
