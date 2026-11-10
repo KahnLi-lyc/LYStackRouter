@@ -13,6 +13,14 @@
             }
         }
 
+        func testModuleIDsFollowRegistrationOrder() throws {
+            let router = try LYStackRouter<AppRoute>.build(
+                modules: .explicit([ChatModule.self, CommunityModule.self]),
+                environment: makeEnvironment()
+            )
+            XCTAssertEqual(router.moduleIDs, ["chat", "community"])
+        }
+
         func testDuplicateModuleIsRejected() {
             XCTAssertThrowsError(
                 try LYStackRouter<AppRoute>.build(

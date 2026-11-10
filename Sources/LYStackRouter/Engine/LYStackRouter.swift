@@ -19,6 +19,8 @@
         public let urlConfiguration: LYURLConfiguration?
         /// 远程下发的重写与降级配置，可随时整体替换。
         public var rewrite: LYRouteRewrite
+        /// 参与构建的模块标识，按登记顺序排列；用于诊断与确认自动发现的结果。
+        public private(set) var moduleIDs: [String] = []
 
         let interceptors: [LYRouteInterceptor<Route>]
         let observers: [any LYRouteObserver<Route>]
@@ -139,6 +141,9 @@
                 fallback: fallback,
                 allowsUnregistered: allowsUnregistered
             )
+            // 不写 `map(\.moduleID)`：Swift 6.4.2 对存在类型元类型的 key path 会在 SILGen 阶段崩溃。
+            // swiftformat:disable:next preferKeyPath
+            router.moduleIDs = types.map { $0.moduleID }
             if let host { router.attach(host) }
             return router
         }
