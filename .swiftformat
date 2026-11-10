@@ -1,0 +1,16 @@
+# LYStackRouter 的 SwiftFormat 配置，沿用 Club Circle iOS 规范。
+--swiftversion 6.0
+--indent 4
+--linebreaks lf
+--maxwidth 120
+--wraparguments before-first
+--wrapparameters before-first
+--wrapcollections before-first
+--semicolons never
+--commas inline
+--ifdef indent
+--stripunusedargs closure-only
+--self remove
+--header strip
+--disable braces,docComments,sortImports,wrap,wrapArguments,wrapMultilineStatementBraces
+--exclude .build,**/Generated/**,Examples/*.xcodeproj
