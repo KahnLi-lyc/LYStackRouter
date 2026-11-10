@@ -26,6 +26,6 @@
 ## 4. 测试与提交
 
 - 任何行为变更都要补测试；修复缺陷先写能复现的失败用例。
-- 提交前运行：`swift build -Xswiftc -strict-concurrency=complete`、`swift test`、iOS Simulator 上的 `xcodebuild test -scheme LYStackRouter-Package`、`swiftformat --lint .`。
+- 提交前运行：`swift build`、`swift test`（macOS，含宏展开测试）、iOS Simulator 上的 `xcodebuild test -scheme LYStackRouter-Package -skip-testing:LYStackRouterMacrosTests`（宏测试只能在 macOS 宿主运行）、`swiftformat --lint .`。
 - 改动公开 API 时同步更新 `Examples/` 与 README；修改 `Examples/project.yml` 后用 `xcodegen generate` 重新生成工程并一起提交。
 - 提交信息使用简体中文，前缀为 `feat:`、`fix:`、`test:`、`docs:`、`refactor:`、`chore:`。

@@ -1,6 +1,7 @@
 /// 导航观察者，只用于埋点与日志，不能改变执行结果。
 ///
 /// 回调只携带路由种类、来源与结果，不携带 URL 原文，避免泄露 Token 等敏感参数。
+/// 两个方法都有默认实现，遵循时需声明 `typealias Route = 你的路由类型`。
 @MainActor
 public protocol LYRouteObserver<Route>: AnyObject {
     /// 观察的路由类型。
