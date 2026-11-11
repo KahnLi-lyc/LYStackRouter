@@ -12,23 +12,18 @@
 
         /// 所有路由请求的入口。准入顺序：停止 → 注册 → 禁用且无兜底 → 外部白名单 → 校验 → 拦截 → 选择处理器 → 宿主状态 → 执行。
         /// 准入在切换目标域、创建页面等任何副作用之前完成；禁用与占位路由走兜底前同样经过完整准入。
-        func submit(_ route: Route, source: LYRouteSource) -> Submission {
+        func submit(_ route: Route, source: LYRouteSource, options: LYOpenOptions = .init()) -> Submission {
             let kind = route.kind
-            guard !stopped else { return settled(kind, source, .failed(.stopped)) }
-
+            if let failure = staticFailure(route, source: source) { return settled(kind, source, .failed(failure)) }
+            if options.hasExplicitOrigin, !isOwnedOrigin(options.from) {
+                return settled(kind, source, .failed(.contextChanged))
+            }
             guard let entry = registry.entries[kind] else {
-                // 未注册的路由没有策略可查，不能推断为允许外部打开；兜底只服务本地请求（例如模块 Demo）。
-                guard allowsUnregistered, !source.isExternal, let fallback else {
-                    return settled(kind, source, .failed(.unregistered))
-                }
-                return admit(route, source, placement: .current, proposed: .failed(.unregistered)) { context in
-                    fallback.handle(route, .unregistered, context)
+                return admit(route, source, options: options, placement: .current, proposed: .failed(.unregistered)) { context in
+                    self.fallback?.handle(route, .unregistered, context)
                 }
             }
             let isDisabled = entry.policy.status == .disabled || rewrite.isDisabled(kind)
-            if isDisabled, fallback == nil { return settled(kind, source, .failed(.unavailable)) }
-            if source.isExternal, !entry.policy.allowsExternal { return settled(kind, source, .failed(.notExternal)) }
-            guard entry.policy.validate(route) else { return settled(kind, source, .failed(.invalidParameter)) }
 
             let request = LYInterceptRequest(
                 route: route,
@@ -45,23 +40,23 @@
                 guard redirectDepth < 4 else { return settled(kind, source, .failed(.rejected("redirectLoop"))) }
                 redirectDepth += 1
                 defer { redirectDepth -= 1 }
-                return submit(target, source: source)
+                return submit(target, source: source, options: options)
             case .deferUntilReady:
-                return deferOrIgnore(route, source, placement: isDisabled ? .current : entry.policy.placement)
+                return deferOrIgnore(route, source, options: options, placement: isDisabled ? .current : entry.policy.placement)
             }
 
             if isDisabled, let fallback {
-                return admit(route, source, placement: .current, proposed: .failed(.unavailable)) { context in
+                return admit(route, source, options: options, placement: .current, proposed: .failed(.unavailable)) { context in
                     fallback.handle(route, .unavailable, context)
                 }
             }
             if entry.policy.status == .placeholder, let fallback {
-                return admit(route, source, placement: entry.policy.placement, proposed: .failed(.unavailable)) { context in
+                return admit(route, source, options: options, placement: entry.policy.placement, proposed: .failed(.unavailable)) { context in
                     fallback.handle(route, .placeholder, context)
                 }
             }
             let proposed: LYOpenResult = entry.handlerKind == .action ? .performed : .failed(.unavailable)
-            return admit(route, source, placement: entry.policy.placement, proposed: proposed) { context in
+            return admit(route, source, options: options, placement: entry.policy.placement, proposed: proposed) { context in
                 entry.handle(route, context)
             }
         }
@@ -70,31 +65,35 @@
         private func admit(
             _ route: Route,
             _ source: LYRouteSource,
+            options: LYOpenOptions,
             placement: LYRoutePlacement,
             proposed: LYOpenResult,
             handle: @escaping (LYRouteContext<Route>) -> Void
         ) -> Submission {
-            guard canNavigate(to: placement) else { return deferOrIgnore(route, source, placement: placement) }
+            if options.hasExplicitOrigin, !isOwnedOrigin(options.from) {
+                return settled(route.kind, source, .failed(.contextChanged))
+            }
+            guard canNavigate(to: placement, options: options) else { return deferOrIgnore(route, source, options: options, placement: placement) }
             // 新准入的外部请求取代所有更早的等待请求。
             var intent: Pending?
             if source.isExternal {
                 pending = nil
                 sequence &+= 1
-                intent = Pending(route: route, source: source, sequence: sequence, sessionID: host?.routerSessionID)
+                intent = Pending(route: route, source: source, options: options, sequence: sequence, sessionID: host?.routerSessionID)
             }
             for observer in observers {
                 observer.routeWillOpen(route.kind, source: source)
             }
-            return execute(kind: route.kind, source: source, intent: intent, proposed: proposed) { [self] in
+            return execute(kind: route.kind, source: source, intent: intent, proposed: proposed, options: options) { [self] in
                 dispatch(route, source, placement: placement, handle: handle)
             }
         }
 
         /// 用户请求受阻时忽略；外部请求保存为最近的等待项。
-        private func deferOrIgnore(_ route: Route, _ source: LYRouteSource, placement: LYRoutePlacement) -> Submission {
+        private func deferOrIgnore(_ route: Route, _ source: LYRouteSource, options: LYOpenOptions, placement: LYRoutePlacement) -> Submission {
             guard source.isExternal else { return settled(route.kind, source, .ignored) }
             sequence &+= 1
-            pending = Pending(route: route, source: source, sequence: sequence, sessionID: host?.routerSessionID)
+            pending = Pending(route: route, source: source, options: options, sequence: sequence, sessionID: host?.routerSessionID)
             observeBlockingPresentation(for: placement)
             return settled(route.kind, source, .deferred)
         }
@@ -106,6 +105,9 @@
             placement: LYRoutePlacement,
             handle: (LYRouteContext<Route>) -> Void
         ) {
+            if let execution = currentExecution, execution.targetNavigation == nil {
+                execution.targetNavigation = activeNavigation
+            }
             if placement != .current {
                 currentExecution?.phase = .presenting
                 guard host?.select(placement) != nil else {
@@ -113,6 +115,7 @@
                     return
                 }
             }
+            if placement != .current { currentExecution?.targetNavigation = activeNavigation }
             handle(makeContext(route, source))
         }
 
@@ -143,11 +146,12 @@
         func performUserNavigation(
             route: Route,
             source: LYRouteSource,
+            options: LYOpenOptions = .init(),
             _ operation: @escaping (LYRouteContext<Route>) -> Void
         ) -> LYOpenResult {
             guard !stopped else { return .failed(.stopped) }
-            guard canNavigate else { return .ignored }
-            return execute(kind: route.kind, source: source, intent: nil, proposed: .failed(.unavailable)) { [self] in
+            guard canNavigate(to: .current, options: options) else { return .ignored }
+            return execute(kind: route.kind, source: source, intent: nil, proposed: .failed(.unavailable), options: options) { [self] in
                 operation(makeContext(route, source))
             }.immediate
         }
@@ -194,7 +198,11 @@
         /// 宿主状态变化后尝试执行等待中的外部请求。
         func schedulePending() {
             guard let pending else { return }
-            guard canNavigate(to: placement(of: pending.route)) else {
+            if pending.options.hasExplicitOrigin, !isOwnedOrigin(pending.options.from) {
+                self.pending = nil
+                return
+            }
+            guard canNavigate(to: placement(of: pending.route), options: pending.options) else {
                 observeBlockingPresentation(for: placement(of: pending.route))
                 return
             }
@@ -214,18 +222,19 @@
         /// 先取走等待项再执行；临时再次受阻时会重新进入等待，执行期间到达的新请求不会被覆盖。
         private func consumePending() {
             guard let intent = pending else { return }
-            guard canNavigate(to: placement(of: intent.route)) else {
+            guard canNavigate(to: placement(of: intent.route), options: intent.options) else {
                 observeBlockingPresentation(for: placement(of: intent.route))
                 return
             }
             pending = nil
             let session = host?.routerSessionID
             guard intent.sessionID == nil || intent.sessionID == session else { return }
-            _ = submit(intent.route, source: intent.source)
+            _ = submit(intent.route, source: intent.source, options: intent.options)
         }
 
         func placement(of route: Route) -> LYRoutePlacement {
-            registry.entries[route.kind]?.policy.placement ?? .current
+            guard let entry = registry.entries[route.kind] else { return .current }
+            return entry.policy.status == .disabled || rewrite.isDisabled(route.kind) ? .current : entry.policy.placement
         }
 
         // MARK: - Observers

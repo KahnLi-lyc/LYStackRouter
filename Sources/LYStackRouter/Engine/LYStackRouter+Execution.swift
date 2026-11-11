@@ -11,9 +11,14 @@
             source: LYRouteSource,
             intent: Pending?,
             proposed: LYOpenResult,
+            options: LYOpenOptions = .init(),
             _ operation: () -> Void
         ) -> Submission {
             let execution = NavigationExecution(sessionID: host?.routerSessionID, generation: generation)
+            execution.options = options
+            execution.targetNavigation = navigation(for: options)
+            execution.isModal = execution.targetNavigation.map { !currentDomain.contains($0) } ?? false
+            if execution.isModal, let navigation = execution.targetNavigation { adoptModalNavigation(navigation) }
             execution.proposedResult = proposed
             if let kind {
                 execution.onFinish = { [weak self] result in self?.notifySettle(kind, source: source, result: result) }
@@ -27,14 +32,14 @@
                 return Submission(immediate: .awaitingConfirmation, execution: execution)
             }
             let preparation = execution.preparationTask
-            let transitions = currentDomain.compactMap(\.transitionCoordinator)
+            let transitions = executionDomain(execution).compactMap(\.transitionCoordinator)
             if preparation == nil, transitions.isEmpty, host?.routerRootViewController?.transitionCoordinator == nil {
                 return Submission(immediate: complete(execution, intent: intent))
             }
             execution.completionTask = Task { [weak self] in
                 await preparation?.value
                 guard !Task.isCancelled, self?.isCurrent(execution) == true else { return }
-                await self?.settleTransitions()
+                await self?.settleTransitions(execution)
                 guard !Task.isCancelled, let self, isCurrent(execution) else { return }
                 _ = complete(execution, intent: intent)
             }
@@ -82,9 +87,12 @@
         func invalidateExecution() {
             terminateExecution()
             generation = UUID()
-            let removals = transitionRemovals.values.flatMap(\.self)
+            // UIKit 可能省略最终回调，先移出登记并释放强快照；迟到回调仍可通过弱引用核对存活页面。
+            let removals = Array(transitionRemovals.values)
             transitionRemovals.removeAll()
-            removals.forEach { host?.tearDown($0) }
+            removals.forEach { $0.invalidate() }
+            managedNavigations.values.forEach { $0.detach() }
+            managedNavigations.removeAll()
             let waiters = transitionWaiters.values
             transitionWaiters.removeAll()
             waiters.forEach { $0.resume() }
@@ -125,9 +133,9 @@
                 markResult(.failed(.contextChanged))
                 return false
             }
-            guard host?.routerRootViewController?.presentedViewController == nil,
+            guard execution.isModal || host?.routerRootViewController?.presentedViewController == nil,
                   execution.hasCompletedTransition(host?.routerRootViewController?.transitionCoordinator),
-                  currentDomain.allSatisfy({ navigation in
+                  executionDomain(execution).allSatisfy({ navigation in
                       execution.hasCompletedTransition(navigation.transitionCoordinator)
                           && navigation.presentedViewController == nil
                           && navigation.topViewController?.presentedViewController == nil
@@ -153,8 +161,8 @@
                 execution.rememberCompletedTransition(transition)
             }
             var index = 0
-            while !Task.isCancelled, isCurrent(execution), index < currentDomain.count {
-                let transition = currentDomain[index].transitionCoordinator
+            while !Task.isCancelled, isCurrent(execution), index < executionDomain(execution).count {
+                let transition = executionDomain(execution)[index].transitionCoordinator
                 index += 1
                 if let transition, !execution.hasCompletedTransition(transition) {
                     await awaitTransition(transition)
@@ -166,7 +174,7 @@
 
         func originIsCurrent(_ execution: NavigationExecution) -> Bool {
             guard let navigation = execution.navigation, let source = execution.source else { return false }
-            return currentDomain.contains { $0 === navigation } && source.parent != nil
+            return originNavigationIsCurrent(navigation) && source.parent != nil
                 && navigation.topViewController === source
         }
 
@@ -198,10 +206,10 @@
         }
 
         /// 嵌套导航栈可继承同一转场；每次等待后重新读取，不重用已结束的协调器快照。
-        private func settleTransitions() async {
+        private func settleTransitions(_ execution: NavigationExecution) async {
             var index = 0
-            while index < currentDomain.count {
-                let coordinator = currentDomain[index].transitionCoordinator
+            while index < executionDomain(execution).count {
+                let coordinator = executionDomain(execution)[index].transitionCoordinator
                 index += 1
                 if let coordinator { await awaitTransition(coordinator) }
             }
@@ -213,6 +221,7 @@
         /// 核对准备中的执行来源是否仍有效，并尝试执行等待中的外部请求。
         public func navigationDidStabilize() {
             guard !stopped, host != nil else { return }
+            if host?.isRouterReady != true { terminateExecution() }
             if let execution = currentExecution, execution.phase == .preparing, execution.hasOrigin {
                 if let transition = host?.routerRootViewController?.transitionCoordinator
                     ?? execution.navigation?.transitionCoordinator {
@@ -232,7 +241,7 @@
                 }
             }
             schedulePending()
-            if let pending, !canNavigate(to: placement(of: pending.route)) { drainPendingAfterNavigationEvent() }
+            if let pending, !canNavigate(to: placement(of: pending.route), options: pending.options) { drainPendingAfterNavigationEvent() }
         }
 
         /// 宿主在导航栈的 `didShow` 回调中调用：UIKit 已确认完成或取消，可核对真实来源。

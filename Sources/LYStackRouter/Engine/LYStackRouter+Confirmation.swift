@@ -69,10 +69,10 @@
 
         /// 确认后的后续导航前核对：来源仍在栈顶、没有弹窗、没有转场。
         func isOriginStillPresented(_ navigation: UINavigationController, source: UIViewController) -> Bool {
-            !stopped && host != nil && currentDomain.contains { $0 === navigation }
+            !stopped && host != nil && originNavigationIsCurrent(navigation)
                 && navigation.topViewController === source && source.parent != nil
                 && Self.isIdle(navigation) && source.presentedViewController == nil
-                && host?.routerRootViewController?.presentedViewController == nil
+                && (managedNavigations[ObjectIdentifier(navigation)] != nil || host?.routerRootViewController?.presentedViewController == nil)
         }
     }
 #endif

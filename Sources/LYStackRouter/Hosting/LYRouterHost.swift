@@ -32,6 +32,13 @@
             identity: AnyHashable?,
             in navigationController: UINavigationController
         ) -> LYOpenResult?
+        /// 带请求选项的自定义展示；默认转交兼容接口。
+        func customShow(
+            _ page: @autoclosure () -> UIViewController,
+            identity: AnyHashable?,
+            in navigationController: UINavigationController,
+            options: LYOpenOptions
+        ) -> LYOpenResult?
         /// 页面被移出导航栈后的清理。默认通知 `LYRoutePageLifecycle`。
         func tearDown(_ page: UIViewController)
     }
@@ -58,6 +65,16 @@
             in navigationController: UINavigationController
         ) -> LYOpenResult? {
             nil
+        }
+
+        /// 默认转交已有展示接口；自定义动画宿主可实现此重载。
+        func customShow(
+            _ page: @autoclosure () -> UIViewController,
+            identity: AnyHashable?,
+            in navigationController: UINavigationController,
+            options: LYOpenOptions
+        ) -> LYOpenResult? {
+            customShow(page(), identity: identity, in: navigationController)
         }
 
         /// 默认通知页面的清理协议。

@@ -13,6 +13,15 @@
 
         let sessionID: String?
         let generation: UUID
+        var options = LYOpenOptions()
+        /// 弱引用自动清零时保留身份值，使迟到的退出通知仍能定位原执行。
+        weak var targetNavigation: UINavigationController? {
+            didSet { targetNavigationID = targetNavigation.map { ObjectIdentifier($0) } }
+        }
+
+        private(set) var targetNavigationID: ObjectIdentifier?
+        var isModal = false
+        var isDismissing = false
         private(set) weak var source: UIViewController?
         private(set) weak var navigation: UINavigationController?
         private(set) var hasOrigin = false

@@ -18,8 +18,12 @@
         /// 本次导航的来源。
         public let source: LYRouteSource
 
+        /// 本次执行的打开选项。
+        public let options: LYOpenOptions
+
         private weak var router: LYStackRouter<Route>?
         private weak var execution: NavigationExecution?
+        private weak var targetNavigation: UINavigationController?
 
         // MARK: - Initialization
 
@@ -28,25 +32,27 @@
             self.route = route
             self.source = source
             self.execution = execution
+            targetNavigation = execution?.targetNavigation
+            options = execution?.options ?? .init()
         }
 
         // MARK: - Public
 
-        /// 当前活跃导航栈。
+        /// 创建本上下文时绑定的目标导航栈；以弱引用保留，结算后仍可查询。
         public var navigationController: UINavigationController? {
-            router?.activeNavigation
+            targetNavigation
         }
 
         /// 展示页面：带身份时先在当前导航栈查找，已有就回到最近的实例，否则创建并 push。
         ///
         /// 宿主的 `customShow` 可以接管展示（例如放进分栏容器）。`make` 最多被调用一次。
-        public func show(identity: AnyHashable? = nil, animated: Bool = true, _ make: () -> UIViewController) {
+        public func show(identity: AnyHashable? = nil, animated: Bool? = nil, _ make: () -> UIViewController) {
             guard isCurrentExecution else { return }
-            guard let router, let navigation = router.activeNavigation else {
+            guard let router, let navigation = execution?.targetNavigation else {
                 router?.markResult(.failed(.unavailable))
                 return
             }
-            if let identity, router.reuse(identity, in: navigation) { return }
+            if let identity, router.reuse(identity, in: navigation, animated: animated ?? options.animated) { return }
             // 宿主可能不调用、也可能调用页面构造；保证 make 最多执行一次。
             withoutActuallyEscaping(make) { make in
                 var made: UIViewController?
@@ -56,25 +62,30 @@
                     made = created
                     return created
                 }
-                if let result = router.host?.customShow(page(), identity: identity, in: navigation) {
+                if let result = router.host?.customShow(page(), identity: identity, in: navigation, options: resolvedOptions(animated)) {
                     router.currentExecution?.phase = .presenting
                     router.markResult(result)
                     return
                 }
-                router.push(page(), in: navigation, animated: animated)
+                router.push(page(), in: navigation, animated: animated ?? options.animated)
             }
         }
 
         /// 以模态方式展示页面。
-        public func present(_ page: UIViewController, animated: Bool = true) {
+        public func present(_ page: UIViewController, animated: Bool? = nil) {
             guard isCurrentExecution else { return }
-            guard let router, let navigation = router.activeNavigation else {
+            guard let router, let navigation = execution?.targetNavigation else {
                 router?.markResult(.failed(.unavailable))
                 return
             }
             router.currentExecution?.phase = .presenting
-            navigation.present(page, animated: animated && navigation.viewIfLoaded?.window != nil)
-            router.markResult(.created)
+            let epoch = router.generation
+            navigation.present(page, animated: (animated ?? options.animated) && navigation.viewIfLoaded?.window != nil) { [weak router, weak page] in
+                guard let router, router.isCurrent(epoch), let modal = page as? UINavigationController else { return }
+                router.adoptModalNavigation(modal)
+            }
+            if let modal = page as? UINavigationController { router.adoptModalNavigation(modal) }
+            router.markResult(page.presentingViewController == nil ? .failed(.blocked) : .created)
         }
 
         /// 异步准备，例如先拉取数据再决定展示。
@@ -83,7 +94,7 @@
         /// 准备完成后必须先 `await context.isStillValid()`，返回 true 才能继续展示。
         /// `work` 抛出错误时本次导航以 `.unavailable` 失败。
         public func prepare(_ work: @escaping @MainActor (LYRouteContext<Route>) async throws -> Void) {
-            guard isCurrentExecution, let router, let navigation = router.activeNavigation, let origin = navigation.topViewController,
+            guard isCurrentExecution, let router, let navigation = execution?.targetNavigation, let origin = navigation.topViewController,
                   let execution = router.bindOrigin(source: origin, navigation: navigation) else { return }
             let context = LYRouteContext(router: router, route: route, source: source, execution: execution)
             execution.preparationTask = Task { @MainActor [weak router, weak execution] in
@@ -114,7 +125,7 @@
             isDestructive: Bool = false,
             onConfirm: @escaping @MainActor (LYRouteContext<Route>) -> Void
         ) {
-            guard isCurrentExecution, let router, let navigation = router.activeNavigation, navigation.presentedViewController == nil,
+            guard isCurrentExecution, let router, let navigation = execution?.targetNavigation, navigation.presentedViewController == nil,
                   let origin = navigation.topViewController,
                   let execution = router.bindOrigin(source: origin, navigation: navigation) else { return }
             execution.phase = .presenting
@@ -124,6 +135,7 @@
             alert.addAction(UIAlertAction(title: cancelTitle, style: .cancel) { _ in state.handled = true })
             let route = route
             let source = source
+            let options = options
             let confirmAction: @MainActor () -> Void = { [weak router, weak navigation, weak origin, weak alert] in
                 guard !state.handled else { return }
                 state.handled = true
@@ -143,7 +155,9 @@
                     guard let navigation, let origin, router.isOriginStillPresented(navigation, source: origin) else {
                         return
                     }
-                    router.performUserNavigation(route: route, source: source, onConfirm)
+                    // 跨域打开后，确认框的来源属于目标栈；后续执行从已确认的页面重新准入。
+                    let continuationOptions = LYOpenOptions(animated: options.animated, from: origin, extras: options.extras)
+                    router.performUserNavigation(route: route, source: source, options: continuationOptions, onConfirm)
                 }
             }
             alert.addAction(UIAlertAction(title: confirmTitle, style: isDestructive ? .destructive : .default) { _ in
@@ -167,8 +181,8 @@
 
         /// 发起一次新的用户导航，适合页面按钮回调；导航进行中时被忽略。
         @discardableResult
-        public func open(_ route: Route) -> LYOpenResult {
-            router?.request(route) ?? .failed(.stopped)
+        public func open(_ route: Route, options: LYOpenOptions = .init()) -> LYOpenResult {
+            router?.request(route, options: options) ?? .failed(.stopped)
         }
 
         /// 返回上一页，可以抢占准备中的导航。
@@ -178,9 +192,9 @@
         }
 
         /// 用给定页面替换当前导航栈，只清理确实离开栈的页面。
-        public func replaceStack(_ pages: [UIViewController], animated: Bool = true) {
-            guard isCurrentExecution, let router, let navigation = router.activeNavigation else { return }
-            router.replaceStack(pages, in: navigation, animated: animated)
+        public func replaceStack(_ pages: [UIViewController], animated: Bool? = nil) {
+            guard isCurrentExecution, let router, let navigation = execution?.targetNavigation else { return }
+            router.replaceStack(pages, in: navigation, animated: animated ?? options.animated)
             router.markResult(.created)
         }
 
@@ -203,7 +217,22 @@
             router?.markResult(.failed(failure))
         }
 
+        /// 创建可供页面与业务依赖注入的客户端，绑定当前宿主与会话代次。
+        public func makeClient(from page: UIViewController? = nil) -> LYRouteClient<Route> {
+            router?.makeClient(from: page) ?? LYRouteClient(
+                open: { _, _ in .failed(.contextChanged) },
+                openURL: { _, _ in .failed(.contextChanged) },
+                dismiss: { _ in .failed(.contextChanged) }
+            )
+        }
+
         // MARK: - Private
+
+        private func resolvedOptions(_ animated: Bool?) -> LYOpenOptions {
+            var value = options
+            if let animated { value.animated = animated }
+            return value
+        }
 
         /// 创建本上下文的执行仍是路由器的当前执行。执行结算或被抢占后，单次执行的操作一律忽略。
         private var isCurrentExecution: Bool {

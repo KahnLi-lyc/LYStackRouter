@@ -3,7 +3,7 @@
 
     /// 标准 `UITabBarController` 宿主：每个 Tab 一个导航栈，目标域映射到 Tab 序号。
     @MainActor
-    public final class LYTabBarHost: NSObject, LYRouterHost, LYNavigationEventSource, UINavigationControllerDelegate {
+    public final class LYTabBarHost: NSObject, LYRouterHost, LYNavigationEventSource, UINavigationControllerDelegate, UITabBarControllerDelegate {
         // MARK: - Properties
 
         /// 宿主管理的 TabBar。
@@ -16,6 +16,8 @@
         public var isReady = true
         /// 业务自己的导航代理，宿主会转发 `willShow` 与 `didShow`。
         public weak var forwardingDelegate: (any UINavigationControllerDelegate)?
+        /// 原有 Tab 代理；未实现的系统回调继续转交它。
+        public weak var forwardingTabDelegate: (any UITabBarControllerDelegate)?
         /// 由路由器在 `attach` 时设置；设置时宿主会成为当前全部导航栈的代理。
         ///
         /// 宿主创建后才放入 TabBar 的导航栈，会在 `attach` 时补装代理；之后若再更换 `viewControllers`，
@@ -33,7 +35,27 @@
             self.tabBarController = tabBarController
             self.placements = placements
             super.init()
+            forwardingTabDelegate = tabBarController.delegate
+            tabBarController.delegate = self
             installDelegates()
+        }
+
+        /// 用户选择 Tab 后立即核对准备任务的来源。
+        public func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
+            forwardingTabDelegate?.tabBarController?(tabBarController, didSelect: viewController)
+            if let navigation = viewController as? UINavigationController { onNavigationDidShow?(navigation) }
+        }
+
+        /// 转发业务 Tab 代理的可选方法。
+        override public nonisolated func responds(to selector: Selector!) -> Bool {
+            MainActor.assumeIsolated {
+                super.responds(to: selector) || forwardingTabDelegate?.responds(to: selector) == true
+            }
+        }
+
+        /// 保留业务 Tab 代理的选择与自定义转场能力。
+        override public nonisolated func forwardingTarget(for selector: Selector!) -> Any? {
+            MainActor.assumeIsolated { forwardingTabDelegate }
         }
 
         // MARK: - LYRouterHost

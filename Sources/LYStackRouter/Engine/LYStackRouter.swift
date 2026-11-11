@@ -32,6 +32,7 @@
         let allowsUnregistered: Bool
         var generation = UUID()
         var currentExecution: NavigationExecution?
+        var managedNavigations: [ObjectIdentifier: NavigationEventBridge] = [:]
         var stopped = false
         var sequence: UInt64 = 0
         var pending: Pending?
@@ -41,7 +42,7 @@
         var pendingTransitionID: ObjectIdentifier?
         var confirmationObservation: PresentationRemovalView?
         /// 只持有进行中栈操作的移出快照，转场结束或宿主解绑时取走。
-        var transitionRemovals: [UUID: [UIViewController]] = [:]
+        var transitionRemovals: [UUID: StackRemoval] = [:]
         var transitionWaiters: [UUID: CheckedContinuation<Void, Never>] = [:]
 
         /// 确认框的展示方式；返回 false 表示 UIKit 没有接受展示。
@@ -61,6 +62,7 @@
         struct Pending {
             let route: Route
             let source: LYRouteSource
+            let options: LYOpenOptions
             let sequence: UInt64
             var sessionID: String?
         }
@@ -208,26 +210,26 @@
 
         /// 用户请求：在当前 MainActor 轮次同步准入，适合按钮回调。异步结果请用 `open`。
         @discardableResult
-        public func request(_ route: Route) -> LYOpenResult {
-            submit(route, source: .user).immediate
+        public func request(_ route: Route, options: LYOpenOptions = .init()) -> LYOpenResult {
+            submit(route, source: .user, options: options).immediate
         }
 
         /// 打开路由并等待本次导航结算。
         @discardableResult
-        public func open(_ route: Route, source: LYRouteSource = .user) async -> LYOpenResult {
-            let submission = submit(route, source: source)
+        public func open(_ route: Route, source: LYRouteSource = .user, options: LYOpenOptions = .init()) async -> LYOpenResult {
+            let submission = submit(route, source: source, options: options)
             if let execution = submission.execution { return await execution.value() }
             return submission.immediate
         }
 
         /// 打开 URL：先应用重写，再解析为路由；不属于本 App 或无法匹配时以 `.unmatchedURL` 失败。
         @discardableResult
-        public func openURL(_ url: URL, source: LYRouteSource = .deepLink) async -> LYOpenResult {
+        public func openURL(_ url: URL, source: LYRouteSource = .deepLink, options: LYOpenOptions = .init()) async -> LYOpenResult {
             guard let route = route(for: url) else {
                 notifySettle(nil, source: source, result: .failed(.unmatchedURL))
                 return .failed(.unmatchedURL)
             }
-            return await open(route, source: source)
+            return await open(route, source: source, options: options)
         }
 
         /// 把 URL 解析为路由；不打开。
