@@ -51,7 +51,7 @@
         /// 登录（nil → 会话）后客户端继续可用；切换账号、退出登录、`resetSession()`、更换宿主或停止路由器后，
         /// 旧客户端一律返回 `.failed(.contextChanged)`，不会跨账号继续导航。
         public func makeClient(from page: UIViewController? = nil) -> LYRouteClient<Route> {
-            let scope = RouteClientScope(page: page, sessionEpoch: sessionEpoch)
+            let scope = RouteClientScope(page: page, sessionID: host?.routerSessionID, sessionEpoch: sessionEpoch)
             return LYRouteClient(open: { [weak self] route, options in
                 guard let self, isClientScopeValid(scope) else { return .failed(.contextChanged) }
                 return await open(route, options: scopedOptions(options, scope: scope))
@@ -67,7 +67,10 @@
         // MARK: - Private
 
         private func isClientScopeValid(_ scope: RouteClientScope) -> Bool {
+            // 会话代次覆盖已通知的切换；会话比对兜住宿主已换账号但尚未调用 `sessionDidChange()` 的情况。
+            // 创建时无会话的客户端在登录后继续可用。
             !Task.isCancelled && !stopped && host != nil && scope.sessionEpoch == sessionEpoch
+                && (scope.sessionID == nil || scope.sessionID == host?.routerSessionID)
         }
 
         private func scopedOptions(_ options: LYOpenOptions, scope: RouteClientScope) -> LYOpenOptions {
@@ -125,13 +128,15 @@
 
         weak var page: UIViewController?
         let hasPage: Bool
+        let sessionID: String?
         let sessionEpoch: UUID
 
         // MARK: - Initialization
 
-        init(page: UIViewController?, sessionEpoch: UUID) {
+        init(page: UIViewController?, sessionID: String?, sessionEpoch: UUID) {
             self.page = page
             hasPage = page != nil
+            self.sessionID = sessionID
             self.sessionEpoch = sessionEpoch
         }
     }

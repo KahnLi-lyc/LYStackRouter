@@ -151,7 +151,7 @@ let navigation = LYRouteClient<AppRoute>(open: { route, options in
 })
 ```
 
-`LYRouteClient` 是 `Sendable` 值，操作在主执行器执行，弱引用路由器和可选来源页面。从无会话登录后客户端继续可用；切换账号、退出登录、`resetSession()`、更换宿主或 `tearDown()` 后失效，返回 `failed(.contextChanged)`。来源页面已释放、不在栈顶或被覆盖时，按上面的来源结果表返回 `ignored`。其 `openURL` 使用用户来源。`dismiss(animated:)` 在来源栈内返回，在模态根关闭流程，在主宿主根返回 `ignored`。
+`LYRouteClient` 是 `Sendable` 值，操作在主执行器执行，弱引用路由器和可选来源页面。从无会话登录后客户端继续可用；切换账号（即使尚未调用 `sessionDidChange()`）、退出登录、`resetSession()`、更换宿主或 `tearDown()` 后失效，返回 `failed(.contextChanged)`。来源页面已释放、不在栈顶或被覆盖时，按上面的来源结果表返回 `ignored`。其 `openURL` 使用用户来源。`dismiss(animated:)` 在来源栈内返回，在模态根关闭流程，在主宿主根返回 `ignored`。
 
 最上层模态 `UINavigationController` 内的来源可以打开 `.current` 路由。执行期间使用绑定的目标栈完成准备、确认和转场等待。返回完成或流程关闭后，旧准备立即失效，交互取消则保留有效来源。流程内发往其他 placement 的请求，用户请求返回 `ignored`，外部请求返回 `deferred`，流程关闭后该等待请求被丢弃。主示例提供模态流程演示。
 

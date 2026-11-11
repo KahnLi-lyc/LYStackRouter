@@ -160,6 +160,8 @@
         public func attach(_ host: any LYRouterHost) {
             guard !stopped else { return }
             if let old = self.host, old !== host { detach(old) }
+            // 原宿主可能已释放（路由器弱持有宿主），此时 detach 不会执行；只要宿主变化就更换会话代次。
+            if self.host !== host { sessionEpoch = UUID() }
             self.host = host
             knownSessionID = host.routerSessionID
             if let source = host as? LYNavigationEventSource {

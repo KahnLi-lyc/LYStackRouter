@@ -71,6 +71,38 @@
             XCTAssertEqual(result, .failed(.contextChanged))
         }
 
+        /// 原宿主已释放后再绑定新宿主，旧客户端同样失效，不能在新宿主上继续导航。
+        func testReleasedHostReplacementInvalidatesClient() async throws {
+            var original: LYSingleStackHost? = LYSingleStackHost(root: UIViewController())
+            weak var released: LYSingleStackHost?
+            released = original
+            let router = try makeRouter(host: XCTUnwrap(original))
+            defer { router.tearDown() }
+            let client = router.makeClient()
+            original = nil
+            XCTAssertNil(released)
+
+            let replacement = LYSingleStackHost(root: UIViewController())
+            router.attach(replacement)
+            let result = await client.open(.page, options: .init(animated: false))
+            XCTAssertEqual(result, .failed(.contextChanged))
+            XCTAssertEqual(replacement.navigationController.viewControllers.count, 1)
+        }
+
+        /// 宿主会话已变为另一账号但尚未调用 `sessionDidChange()` 时，旧客户端也不能跨账号导航。
+        func testClientRejectsUnreportedAccountSwitch() async throws {
+            let host = LYSingleStackHost(root: UIViewController())
+            host.sessionID = "A"
+            let router = try makeRouter(host: host)
+            defer { router.tearDown() }
+            let client = router.makeClient()
+
+            host.sessionID = "B"
+            let result = await client.open(.page, options: .init(animated: false))
+            XCTAssertEqual(result, .failed(.contextChanged))
+            XCTAssertEqual(host.navigationController.viewControllers.count, 1)
+        }
+
         // MARK: - Host Readiness
 
         /// 展示阶段（确认框已交给 UIKit、展示完成回调尚未到达）宿主暂时未就绪，不应把执行结算为 contextChanged。
