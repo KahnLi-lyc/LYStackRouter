@@ -63,7 +63,8 @@ struct ClubRouteModule: LYRouteModule {
             // 栈内已有同一身份的页面就回到最近的实例，否则新建并 push。
             context.show(identity: id) {
                 let page = ClubViewController(id: id, api: api)
-                page.onOpenChat = { context.open(.chat($0)) } // 跨模块只发路由，不引用对方类型
+                let navigation = context.makeClient(from: page)
+                page.onOpenChat = { id in Task { _ = await navigation.open(.chat(id)) } }
                 return page
             }
         }
@@ -104,6 +105,58 @@ coordinator = try AppCoordinator(tabs: tabs, environment: environment)
 coordinator.router.request(.club("42"))                    // 用户点击，同步返回结果
 await coordinator.router.openURL(url, source: .deepLink)    // 外部请求
 ```
+
+## 打开选项与静态可达性
+
+```swift
+let options = LYOpenOptions(
+    animated: false,
+    from: sourceViewController,
+    extras: ["entry": "inbox", "campaign": 42]
+)
+let result = await router.open(.club("42"), options: options)
+let urlResult = await router.openURL(url, source: .deepLink, options: options)
+```
+
+`from` 是弱引用，必须仍是宿主可见导航域或同窗口最上层模态导航栈的栈顶页面。失效来源会被拒绝。目标业务数据通过路由关联值表达，`extras` 提供可从 `context.options` 读取的 `Sendable` 附加信息。观察者只接收种类、来源和结果。`show(animated:)`、`present(animated:)`、`replaceStack(animated:)` 的显式参数覆盖请求动画选项，自定义宿主通过 `customShow(_:identity:in:options:)` 获得选项。
+
+```swift
+if router.canOpenURL(url, source: .deepLink) {
+    let result = await router.openURL(url)
+}
+```
+
+`canOpen(_:source:)` 和 `canOpenURL(_:source:)` 与打开共用静态准入检查，覆盖注册、兜底、禁用、外部策略和参数校验。合法兜底也视为具备处理能力。检查不运行拦截器、处理器或页面创建，登录与当前宿主状态仍由实际打开流程判断。参数校验和 URL 解析须保持无副作用，实际执行读取 `open` 的返回结果。
+
+## 向业务模块注入导航
+
+```swift
+// 页面创建后绑定来源，回调仅持有轻量客户端。
+let navigation = context.makeClient(from: page)
+page.onOpenChat = { id in
+    Task { _ = await navigation.open(.chat(id)) }
+}
+
+// 测试替身可以记录请求并返回确定结果。
+let navigation = LYRouteClient<AppRoute>(open: { route, options in
+    .performed
+})
+```
+
+`LYRouteClient` 是 `Sendable` 值，操作在主执行器执行，弱引用路由器和可选来源页面，并绑定创建时的宿主／会话代次。代次改变后重新创建客户端。过期或隐藏来源的客户端返回 `failed(.contextChanged)`，其 `openURL` 使用用户来源。`dismiss(animated:)` 在来源栈内返回，在模态根关闭流程，在主宿主根返回 `ignored`。
+
+最上层模态 `UINavigationController` 内的来源可以打开 `.current` 路由。执行期间使用绑定的目标栈完成准备、确认和转场等待。返回完成或流程关闭后，旧准备立即失效，交互取消则保留有效来源。其他 placement 沿用宿主阻挡规则。主示例提供模态流程演示。
+
+## 窗口上下文
+
+```swift
+if let scene = sourceViewController.view.window?.windowScene,
+   let top = LYWindowContext.topViewController(in: scene) {
+    // 在明确的窗口上下文展示 Alert 等辅助界面。
+}
+```
+
+`LYWindowContext` 提供场景、key window、normal 主窗口、可见控制器、bounds 与安全区查询。优先传入调用方的视图、窗口或场景。`activeWindowScene()` 只在唯一前台活跃场景时返回结果。`mainWindow(in:)` 选择可见、有根控制器的 normal 窗口，优先 normal key window，候选有歧义时返回 nil。`keyWindow(in:)` 返回真实 key window，包含浮层窗口。几何查询依次使用有效窗口、场景和场景关联屏幕的 bounds，容器查询先使用视图本身的 bounds。导航执行通过显式宿主与绑定的导航域完成。
 
 ## 注册方式：显式或自动发现
 
@@ -154,7 +207,19 @@ modules: .discovered(plus: [FakeClubModule.self], excluding: ["club"]) // 用测
 
 ## 示例 App
 
-`Examples/LYStackRouterExamples.xcodeproj` 是一个三 Tab 的 UIKit App，由 XcodeGen 根据 `Examples/project.yml` 生成。业务模块放在本地包 `Examples/DemoFeatures` 中，互相之间不 import。示例覆盖：循环复用、自定义 scheme 与 Universal Link、登录重定向、深链等待弹窗关闭或交互返回取消、跨模块只发路由、分栏容器的 `customShow` 钩子、带确认与跨 Tab 恢复的会话型房间页、准备阶段抢占、降级兜底。启动参数 `-assembly explicit` 或 `-assembly discovered` 可以对比两种组装方式。示例工程上运行 11 个 UI 测试和 6 个宿主内引擎测试。
+`Examples/LYStackRouterExamples.xcodeproj` 是由 `Examples/project.yml` 生成的三 Tab UIKit App。`Examples/Packages` 下的 `DemoRouteContract`、`DemoUIKit`、`DemoCommunityFeature` 和 `DemoMessagingFeature` 四个独立包分别负责路由契约、共享 UI、社群功能和消息功能，功能包之间通过契约通信。两个功能包各有注册测试、独立 Demo 工程和 UI 冒烟测试。
+
+主示例使用 `-assembly explicit` 或 `-assembly discovered` 比较两种组装方式，演示页面复用、URL 入口、登录重定向、外部请求等待、嵌套导航容器、跨 Tab 会话复用、房间最小化与恢复、模态流程内导航、请求选项、静态检查和窗口上下文。
+
+```sh
+xcodegen generate --spec Examples/project.yml
+xcodegen generate --spec Examples/Packages/DemoCommunityFeature/Demo/project.yml
+xcodegen generate --spec Examples/Packages/DemoMessagingFeature/Demo/project.yml
+xcodebuild test -project Examples/Packages/DemoCommunityFeature/Demo/DemoCommunityFeatureDemo.xcodeproj -scheme DemoCommunityFeatureDemo -destination 'platform=iOS Simulator,name=iPhone 18 Pro'
+xcodebuild test -project Examples/Packages/DemoMessagingFeature/Demo/DemoMessagingFeatureDemo.xcodeproj -scheme DemoMessagingFeatureDemo -destination 'platform=iOS Simulator,name=iPhone 18 Pro'
+```
+
+运行时选择本机已安装的模拟器。
 
 ## 与 URLNavigator、TheRouter、ReerRouter 的差异
 
@@ -184,9 +249,13 @@ modules: .discovered(plus: [FakeClubModule.self], excluding: ["club"]) // 用测
 | [swift-router](https://github.com/eriicafes/swift-router) | MIT | 由路由声明双向 URL 转换 | 只面向 SwiftUI |
 | [RouteComposer](https://github.com/ekazaev/route-composer) | 只读了 README，未审阅源码 | 以导航后任务作为观察者的参考 | — |
 
-执行引擎泛化自一个线上 UIKit App 的导航层，其作者同意以开源形式发布。
+执行引擎为模块化 UIKit 应用提供显式容器归属、准备取消和会话隔离。
 
-## 暂不支持
+## 后续方向
+
+计划提供页面业务结果回传、SwiftUI 宿主、路由表导出和独立测试产品。
+
+## 当前限制
 
 SwiftUI 宿主、状态恢复，以及在泛型模块类型上使用 `@LYRouteModule`（请改用显式列表）。从预编译静态库或 XCFramework 中自动发现尚未验证；这类场景可以在 `.discovered(plus:)` 中引用模块，或直接使用显式列表。
 

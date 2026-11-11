@@ -1,4 +1,4 @@
-# LYStackRouter 的 SwiftFormat 配置，沿用 Club Circle iOS 规范。
+# LYStackRouter 的 SwiftFormat 配置。
 --swiftversion 6.0
 --indent 4
 --linebreaks lf
