@@ -63,8 +63,7 @@ struct ClubRouteModule: LYRouteModule {
             // Reuses the nearest page with this identity in the stack, otherwise pushes a new one.
             context.show(identity: id) {
                 let page = ClubViewController(id: id, api: api)
-                let navigation = context.makeClient(from: page)
-                page.onOpenChat = { id in Task { _ = await navigation.open(.chat(id)) } }
+                page.onOpenChat = { context.open(.chat($0)) } // cross-module: send a route, not a type
                 return page
             }
         }
@@ -118,7 +117,14 @@ let result = await router.open(.club("42"), options: options)
 let urlResult = await router.openURL(url, source: .deepLink, options: options)
 ```
 
-`from` is weak. It must remain the top page of a visible host navigation stack or the topmost presented navigation stack in the same window. Stale sources are rejected. Route-associated values carry destination data, and `extras` carries supplementary `Sendable` metadata available through `context.options`. Observers receive kind, source and result without extras or raw URL parameters. Explicit `show(animated:)`, `present(animated:)` and `replaceStack(animated:)` arguments override the request animation setting. A custom host can receive options through `customShow(_:identity:in:options:)`.
+`from` is weak. It must remain the top page of a visible host navigation stack or of the topmost presented navigation stack in the same window. A child controller embedded in that page (a pager or segment) counts as the page itself. An explicit source never falls back to the current top page:
+
+| Source state | User request | External request |
+|---|---|---|
+| Released, no longer on top, or not owned by the host | `ignored` | `failed(.contextChanged)` |
+| Owned but covered by a presentation, a transition or a host that is not ready | `ignored` | `deferred` |
+
+Route-associated values carry destination data, and `extras` carries supplementary `Sendable` metadata available through `context.options`. Observers receive kind, source and result without extras or raw URL parameters. Explicit `show(animated:)`, `present(animated:)` and `replaceStack(animated:)` arguments override the request animation setting. A custom host can receive options through `customShow(_:identity:in:options:)`.
 
 ```swift
 if router.canOpenURL(url, source: .deepLink) {
@@ -130,6 +136,8 @@ if router.canOpenURL(url, source: .deepLink) {
 `canOpen(_:source:)` and `canOpenURL(_:source:)` share static admission checks with opening. They account for registration, fallback, disabled routes, external policy and parameter validation. They do not execute interceptors or handlers, create pages, check login, or guarantee current host readiness. Validation and URL parsing must be free of side effects. A permitted fallback counts as a capability.
 
 ## Injecting navigation into features
+
+`context.open` is the simplest way for a page created by a handler to start a new navigation. Use `LYRouteClient` when a page or a feature service should receive navigation as a dependency: it can be replaced by a test double, carries the source page, and also exposes `openURL` and `dismiss`.
 
 ```swift
 // Bind a page client after creating the page.
@@ -144,9 +152,11 @@ let navigation = LYRouteClient<AppRoute>(open: { route, options in
 })
 ```
 
-`LYRouteClient` is a `Sendable` value whose operations run on the main actor. It weakly references the router and optional source page, and binds the current host/session generation. Recreate injected clients when that generation changes. An expired or hidden page client returns `failed(.contextChanged)`. Its `openURL` uses a user source. `dismiss(animated:)` pops the source stack, closes a presented flow at its root, or returns `ignored` at a primary root.
+`LYRouteClient` is a `Sendable` value whose operations run on the main actor. It weakly references the router and the optional source page. A client survives signing in from no session. Switching accounts, signing out, `resetSession()`, attaching a different host or `tearDown()` invalidate it, and it then returns `failed(.contextChanged)`. A page client whose page is released, no longer on top or covered follows the source table above and returns `ignored`. Its `openURL` uses a user source. `dismiss(animated:)` pops the source stack, closes a presented flow at its root, or returns `ignored` at a primary root.
 
-A source inside the topmost presented `UINavigationController` can open `.current` routes within that flow. The execution uses its weakly bound target stack through preparation, confirmation and transition settlement. Back completion and flow dismissal invalidate the old preparation. Cancelled gestures keep valid origins. Cross-placement requests continue to follow the host blocking rules. The example's modal workflow exercises this behavior.
+A source inside the topmost presented `UINavigationController` can open `.current` routes within that flow. The execution uses its weakly bound target stack through preparation, confirmation and transition settlement. Back completion and flow dismissal invalidate the old preparation. Cancelled gestures keep valid origins. Cross-placement requests from the flow are `ignored` for users and `deferred` for external sources; when the flow closes, the waiting request is dropped. The example's modal workflow exercises this behavior.
+
+The router adopts a presented navigation stack the first time it navigates from it, and when a handler presents one with `context.present`. Adoption installs an internal delegate that forwards every delegate method to the existing delegate and restores it afterwards. `UIImagePickerController`, `UIVideoEditorController`, `MFMailComposeViewController` and `MFMessageComposeViewController` are never adopted. Only a dismissal performed by the router (`LYRouteClient.dismiss`) sends `routerDidRemovePage()` to the flow's pages. A user swipe-down or a dismissal by feature code does not, matching the rule for system back on the primary stack.
 
 ## Window context
 
@@ -191,19 +201,21 @@ The macro writes a record into `__DATA,__lystackrouter` at compile time. `build(
 | `LYRoutePolicy` | Status (`implemented` / `placeholder` / `disabled`), placement, `allowsExternal` (default `false`), `requiresSession`, validation. |
 | `LYRouteInterceptor` | Priority-ordered, synchronous, typed decision: `proceed`, `redirect(Route)`, `reject(Failure)`, `deferUntilReady`. Runs before any side effect. |
 | `LYRouteRewrite` | Codable remote config: disable kinds or replace exact URL templates. |
-| `LYRouteObserver` | Read-only analytics hooks. Receives kind, source and result, never the raw URL. |
+| `LYRouteObserver` | Read-only analytics hooks. Receives kind, source and result, never the raw URL. `routeDidDropPending(_:source:reason:)` reports a `deferred` external request that will no longer run. After a redirect, observers see the target route only. |
 | `LYRouteFallback` | Handles placeholder and disabled routes, and unregistered routes for local requests in non-exhaustive builds, e.g. `.placeholder`. It runs only after the external allowlist, validation and interceptors pass. |
 | `LYRouteContext` | What a handler gets: `show(identity:)`, `present`, `prepare` + `isStillValid()`, `confirm`, `open`, `back(from:)`, `replaceStack`, `revealExisting(where:)`, `markPerformed`, `fail`. |
-| `LYRouterHost` | Your container: session ID, readiness, navigation stacks per placement, `select` / `reveal`, and a `customShow` hook for split containers. `LYSingleStackHost` and `LYTabBarHost` are built in. |
+| `LYRouterHost` | Your container: session ID, readiness, navigation stacks per placement, `select` / `reveal`, and a `customShow` hook for split containers. `LYSingleStackHost` and `LYTabBarHost` are built in. `LYTabBarHost` becomes the tab bar delegate and forwards unimplemented methods to `forwardingTabDelegate`; navigation delegate methods go to `forwardingDelegate`. |
 | `LYOpenResult` | `created`, `reused`, `alreadyVisible`, `performed`, `awaitingConfirmation`, `deferred`, `ignored`, `failed(LYRouteFailure)`. |
 
 ### Engine guarantees
 
 - A navigation settles once. A user request while another navigation runs, or while a transition is in flight, is `ignored`. Taps never queue up.
-- During `prepare`, a legitimate back preempts the navigation (`failed(.contextChanged)`). The late preparation cannot show anything.
+- During `prepare`, a legitimate back preempts the navigation (`failed(.contextChanged)`). The late preparation cannot show anything. Always `await context.isStillValid()` before showing after preparation: the router does not check for you.
+- A host that is not ready preempts preparation only. A navigation already presenting settles through its transition or confirmation alert.
 - External requests (push, deep link, web) that cannot run yet are `deferred`. Only the latest one is kept, bound to the current session, and it runs after the blocking sheet or transition ends. That includes an interactive back swipe that is cancelled.
-- Switching or signing out of an account drops the waiting request. Signing in from no session keeps it.
+- Switching or signing out of an account drops the waiting request. Signing in from no session keeps it. Every dropped `deferred` request reaches `routeDidDropPending` exactly once with a `LYPendingDropReason`.
 - When the router pops back to an existing page, only the pages that actually left the stack receive `routerDidRemovePage()`. Pages the user pops are not treated as router cleanup.
+- URLs ignore trailing slashes: `myapp://club/42/` matches `club/<id>`.
 - If UIKit refuses to present a confirmation alert, the navigation settles as `failed(.blocked)` instead of holding the lock.
 
 ## Example app
@@ -254,7 +266,7 @@ The execution engine supports explicit container ownership, preparation cancella
 
 ## Planned additions
 
-Page result delivery, SwiftUI hosts, route-table export and a dedicated testing product are planned.
+Page result delivery, `popTo(kind:)` and popping back to a page identity, SwiftUI hosts, route-table export and a dedicated testing product are planned.
 
 ## Current limitations
 

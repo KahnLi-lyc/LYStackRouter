@@ -7,9 +7,18 @@
 - `LYOpenOptions` 传递动画、弱来源页面和 `Sendable` 附加值，打开入口与上下文支持选项。
 - `canOpen`、`canOpenURL` 与提交共用静态准入检查。
 - 来源限定的模态导航栈内流程及执行绑定的目标导航域。
-- 可注入且绑定来源／代次的 `LYRouteClient`，支持打开、URL 和关闭操作及测试替身。
+- 可注入且绑定来源与会话代次的 `LYRouteClient`，支持打开、URL 和关闭操作及测试替身；登录后继续可用，切换账号、退出、重置、更换宿主或停止后失效。
+- `LYPendingDropReason` 与 `LYRouteObserver.routeDidDropPending(_:source:reason:)`：已 `deferred` 的外部请求被取代、会话变化、重置、来源失效或停止时通知一次，默认空实现。
 - 场景感知的 `LYWindowContext`，提供窗口、顶层控制器、几何和安全区查询。
-- 四个独立示例包、两个可运行模块 Demo、注册与 UI 冒烟测试，以及嵌套容器、模态流程和会话最小化恢复场景。
+- 四个独立示例包、两个可运行模块 Demo、注册与 UI 冒烟测试，以及嵌套容器、全屏模态流程和会话最小化恢复场景。
+
+### Changed
+
+- `context.show`、`present`、`replaceStack` 的 `animated` 参数改为 `Bool? = nil`，默认跟随请求的 `LYOpenOptions.animated`。源码兼容。
+- `LYRouterHost` 新增 `customShow(_:identity:in:options:)` 重载，默认转交原接口。源码兼容。
+- `LYTabBarHost` 成为 TabBar 的代理（创建与 `attach` 时安装），新增 `forwardingTabDelegate`；Tab 代理方法转给它，导航代理的可选方法（含动画与交互）转给 `forwardingDelegate`。
+- 显式来源结果：来源已释放、不在栈顶或不属于宿主时，用户请求返回 `.ignored`，外部请求返回 `.failed(.contextChanged)`；被覆盖时用户忽略、外部等待。栈顶页面内的子控制器视为所在页面。
+- 路由器接管被弹出的导航栈（相册、视频编辑、邮件、短信等系统导航控制器除外）；只有 `LYRouteClient.dismiss` 关闭的模态流程会对其页面发送 `routerDidRemovePage()`。
 
 ### Fixed
 
@@ -21,6 +30,10 @@
 - 模态关闭通知晚于导航容器释放时，仍能清理存活页面并终止旧准备。
 - 失效转场释放页面强快照，迟到清理跳过重新挂载、展示或入栈的页面；原宿主释放后仍通知页面生命周期。
 - 保留上下文在路由器释放后创建的客户端，三个操作统一返回 `contextChanged`。
+- 选中 Tab 不是导航栈时，不带来源的请求恢复为 0.1.1 的行为，可以切换目标域。
+- 宿主未就绪只终止准备阶段，展示中的导航（包括已交给 UIKit 的确认框）不再被结算为 `contextChanged`。
+- 登录时保留已接管的模态导航栈，模态内的返回与关闭继续生效；尚未接管的模态中 `back` 与 `dismiss` 使用同样准入。
+- `context.navigationController` 跟随 `revealExisting` 切换后的目标栈。
 
 ### Documentation
 

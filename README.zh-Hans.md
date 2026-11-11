@@ -63,8 +63,7 @@ struct ClubRouteModule: LYRouteModule {
             // 栈内已有同一身份的页面就回到最近的实例，否则新建并 push。
             context.show(identity: id) {
                 let page = ClubViewController(id: id, api: api)
-                let navigation = context.makeClient(from: page)
-                page.onOpenChat = { id in Task { _ = await navigation.open(.chat(id)) } }
+                page.onOpenChat = { context.open(.chat($0)) } // 跨模块只发路由，不引用对方类型
                 return page
             }
         }
@@ -118,7 +117,14 @@ let result = await router.open(.club("42"), options: options)
 let urlResult = await router.openURL(url, source: .deepLink, options: options)
 ```
 
-`from` 是弱引用，必须仍是宿主可见导航域或同窗口最上层模态导航栈的栈顶页面。失效来源会被拒绝。目标业务数据通过路由关联值表达，`extras` 提供可从 `context.options` 读取的 `Sendable` 附加信息。观察者只接收种类、来源和结果。`show(animated:)`、`present(animated:)`、`replaceStack(animated:)` 的显式参数覆盖请求动画选项，自定义宿主通过 `customShow(_:identity:in:options:)` 获得选项。
+`from` 是弱引用，必须仍是宿主可见导航域或同窗口最上层模态导航栈的栈顶页面。栈顶页面内嵌的子控制器（分页、分段）视为所在页面。显式来源不会退回到当前栈顶：
+
+| 来源状态 | 用户请求 | 外部请求 |
+|---|---|---|
+| 已释放、不在栈顶或不属于宿主 | `ignored` | `failed(.contextChanged)` |
+| 属于宿主，但被弹窗、转场覆盖或宿主未就绪 | `ignored` | `deferred` |
+
+目标业务数据通过路由关联值表达，`extras` 提供可从 `context.options` 读取的 `Sendable` 附加信息。观察者只接收种类、来源和结果。`show(animated:)`、`present(animated:)`、`replaceStack(animated:)` 的显式参数覆盖请求动画选项，自定义宿主通过 `customShow(_:identity:in:options:)` 获得选项。
 
 ```swift
 if router.canOpenURL(url, source: .deepLink) {
@@ -129,6 +135,8 @@ if router.canOpenURL(url, source: .deepLink) {
 `canOpen(_:source:)` 和 `canOpenURL(_:source:)` 与打开共用静态准入检查，覆盖注册、兜底、禁用、外部策略和参数校验。合法兜底也视为具备处理能力。检查不运行拦截器、处理器或页面创建，登录与当前宿主状态仍由实际打开流程判断。参数校验和 URL 解析须保持无副作用，实际执行读取 `open` 的返回结果。
 
 ## 向业务模块注入导航
+
+处理器创建的页面发起新导航时，`context.open` 最简单。页面或业务服务需要以依赖注入方式获得导航能力时使用 `LYRouteClient`：它可以替换为测试替身，携带来源页面，并提供 `openURL` 与 `dismiss`。
 
 ```swift
 // 页面创建后绑定来源，回调仅持有轻量客户端。
@@ -143,9 +151,11 @@ let navigation = LYRouteClient<AppRoute>(open: { route, options in
 })
 ```
 
-`LYRouteClient` 是 `Sendable` 值，操作在主执行器执行，弱引用路由器和可选来源页面，并绑定创建时的宿主／会话代次。代次改变后重新创建客户端。过期或隐藏来源的客户端返回 `failed(.contextChanged)`，其 `openURL` 使用用户来源。`dismiss(animated:)` 在来源栈内返回，在模态根关闭流程，在主宿主根返回 `ignored`。
+`LYRouteClient` 是 `Sendable` 值，操作在主执行器执行，弱引用路由器和可选来源页面。从无会话登录后客户端继续可用；切换账号、退出登录、`resetSession()`、更换宿主或 `tearDown()` 后失效，返回 `failed(.contextChanged)`。来源页面已释放、不在栈顶或被覆盖时，按上面的来源结果表返回 `ignored`。其 `openURL` 使用用户来源。`dismiss(animated:)` 在来源栈内返回，在模态根关闭流程，在主宿主根返回 `ignored`。
 
-最上层模态 `UINavigationController` 内的来源可以打开 `.current` 路由。执行期间使用绑定的目标栈完成准备、确认和转场等待。返回完成或流程关闭后，旧准备立即失效，交互取消则保留有效来源。其他 placement 沿用宿主阻挡规则。主示例提供模态流程演示。
+最上层模态 `UINavigationController` 内的来源可以打开 `.current` 路由。执行期间使用绑定的目标栈完成准备、确认和转场等待。返回完成或流程关闭后，旧准备立即失效，交互取消则保留有效来源。流程内发往其他 placement 的请求，用户请求返回 `ignored`，外部请求返回 `deferred`，流程关闭后该等待请求被丢弃。主示例提供模态流程演示。
+
+路由器第一次以弹出栈中的页面为来源导航，或处理器通过 `context.present` 弹出导航栈时，会接管该栈：安装内部代理，把全部代理方法转发给原代理，结束接管时恢复。`UIImagePickerController`、`UIVideoEditorController`、`MFMailComposeViewController`、`MFMessageComposeViewController` 不会被接管。只有路由器发起的关闭（`LYRouteClient.dismiss`）才对流程内页面发送 `routerDidRemovePage()`；用户下滑关闭或业务自行 `dismiss` 不发送，与主栈“系统返回不算路由清理”一致。
 
 ## 窗口上下文
 
@@ -190,19 +200,21 @@ modules: .discovered(plus: [FakeClubModule.self], excluding: ["club"]) // 用测
 | `LYRoutePolicy` | 状态（`implemented` / `placeholder` / `disabled`）、目标域、`allowsExternal`（默认 `false`）、`requiresSession`、参数校验。 |
 | `LYRouteInterceptor` | 按优先级同步执行，返回类型化决策：`proceed`、`redirect(Route)`、`reject(Failure)`、`deferUntilReady`；在任何副作用之前运行。 |
 | `LYRouteRewrite` | 可 Codable 下发的远程配置：禁用某些路由种类，或精确替换 URL 模板。 |
-| `LYRouteObserver` | 只读的埋点回调，只拿到种类、来源与结果，不拿 URL 原文。 |
+| `LYRouteObserver` | 只读的埋点回调，只拿到种类、来源与结果，不拿 URL 原文。`routeDidDropPending(_:source:reason:)` 报告已 `deferred` 但不会再执行的外部请求。重定向后观察者只看到目标路由。 |
 | `LYRouteFallback` | 处理占位与禁用的路由，以及非穷尽构建中本地请求的未注册路由，例如 `.placeholder`。只在外部白名单、参数校验与拦截器都通过后执行。 |
 | `LYRouteContext` | 处理器拿到的上下文：`show(identity:)`、`present`、`prepare` + `isStillValid()`、`confirm`、`open`、`back(from:)`、`replaceStack`、`revealExisting(where:)`、`markPerformed`、`fail`。 |
-| `LYRouterHost` | 接入方的容器：会话标识、是否就绪、各目标域的导航栈、`select` / `reveal`，以及给分栏容器用的 `customShow` 钩子。内置 `LYSingleStackHost` 与 `LYTabBarHost`。 |
+| `LYRouterHost` | 接入方的容器：会话标识、是否就绪、各目标域的导航栈、`select` / `reveal`，以及给分栏容器用的 `customShow` 钩子。内置 `LYSingleStackHost` 与 `LYTabBarHost`。`LYTabBarHost` 会成为 TabBar 的代理，未实现的 Tab 代理方法转给 `forwardingTabDelegate`，导航代理方法转给 `forwardingDelegate`。 |
 | `LYOpenResult` | `created`、`reused`、`alreadyVisible`、`performed`、`awaitingConfirmation`、`deferred`、`ignored`、`failed(LYRouteFailure)`。 |
 
 ### 引擎保证
 
 - 一次导航只结算一次。另一导航进行中或转场进行中时，用户请求返回 `ignored`，连点不会排队。
-- `prepare` 期间合法的返回会抢占本次导航（`failed(.contextChanged)`），迟到的准备结果不能再展示页面。
+- `prepare` 期间合法的返回会抢占本次导航（`failed(.contextChanged)`），迟到的准备结果不能再展示页面。准备结束后必须先 `await context.isStillValid()` 再展示，路由器不会替你检查。
+- 宿主未就绪只抢占准备阶段；已在展示的导航由转场或确认框结算。
 - 推送、深链、H5 等外部请求暂时不能执行时返回 `deferred`：只保留最近一个并绑定当前会话，在挡住它的弹窗或转场结束后执行，包括被取消的交互返回手势。
-- 切换账号或退出登录会丢弃等待请求；从无会话登录则保留并继续。
+- 切换账号或退出登录会丢弃等待请求；从无会话登录则保留并继续。每个被丢弃的 `deferred` 请求都会以 `LYPendingDropReason` 通知 `routeDidDropPending` 一次。
 - 路由器回到已有页面时，只有确实离开导航栈的页面收到 `routerDidRemovePage()`。用户手动返回不算路由器清理。
+- URL 忽略末尾斜杠：`myapp://club/42/` 与 `club/<id>` 匹配。
 - UIKit 拒绝展示确认框时，本次导航以 `failed(.blocked)` 结算，不会一直占用导航权。
 
 ## 示例 App
@@ -253,7 +265,7 @@ xcodebuild test -project Examples/Packages/DemoMessagingFeature/Demo/DemoMessagi
 
 ## 后续方向
 
-计划提供页面业务结果回传、SwiftUI 宿主、路由表导出和独立测试产品。
+计划提供页面业务结果回传、`popTo(kind:)` 与按身份回退到指定页面、SwiftUI 宿主、路由表导出和独立测试产品。
 
 ## 当前限制
 
