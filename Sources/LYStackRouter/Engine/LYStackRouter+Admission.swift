@@ -109,7 +109,7 @@
                     return
                 }
             }
-            handle(LYRouteContext(router: self, route: route, source: source))
+            handle(makeContext(route, source))
         }
 
         /// 在已取得执行权的处理器内继续导航到另一路由，不重新准入、不创建新的执行。
@@ -117,7 +117,7 @@
             guard let execution = currentExecution, isCurrent(execution) else { return }
             guard let entry = registry.entries[route.kind] else {
                 if allowsUnregistered, let fallback {
-                    fallback.handle(route, .unregistered, LYRouteContext(router: self, route: route, source: source))
+                    fallback.handle(route, .unregistered, makeContext(route, source))
                 } else {
                     markResult(.failed(.unregistered))
                 }
@@ -144,8 +144,13 @@
             guard !stopped else { return .failed(.stopped) }
             guard canNavigate else { return .ignored }
             return execute(kind: route.kind, source: source, intent: nil, proposed: .failed(.unavailable)) { [self] in
-                operation(LYRouteContext(router: self, route: route, source: source))
+                operation(makeContext(route, source))
             }.immediate
+        }
+
+        /// 为当前执行创建处理器上下文；上下文的单次执行操作只对这次执行生效。
+        func makeContext(_ route: Route, _ source: LYRouteSource) -> LYRouteContext<Route> {
+            LYRouteContext(router: self, route: route, source: source, execution: currentExecution)
         }
 
         // MARK: - Admission

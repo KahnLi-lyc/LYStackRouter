@@ -62,6 +62,11 @@
             confirmationObservation = nil
         }
 
+        /// 确认框结算后，确认回调是否仍属于当前代次与会话。不要求执行仍是当前执行：确认框展示完成时它已结算。
+        func isConfirmationContextValid(_ execution: NavigationExecution) -> Bool {
+            isCurrent(execution.generation) && execution.sessionID == host?.routerSessionID
+        }
+
         /// 确认后的后续导航前核对：来源仍在栈顶、没有弹窗、没有转场。
         func isOriginStillPresented(_ navigation: UINavigationController, source: UIViewController) -> Bool {
             !stopped && host != nil && currentDomain.contains { $0 === navigation }
