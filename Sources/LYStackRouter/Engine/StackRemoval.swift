@@ -7,11 +7,15 @@
     /// 自定义宿主如需执行额外清理，应保持存活至对应转场结束。
     @MainActor
     final class StackRemoval {
+        // MARK: - Properties
+
         private weak var owner: (any LYRouterHost)?
         private var retainedPages: [UIViewController]
         private let references: [PageReference]
         private var cleaned = Set<ObjectIdentifier>()
         private var isFinished = false
+
+        // MARK: - Initialization
 
         init(pages: [UIViewController], owner: (any LYRouterHost)?) {
             var identities = Set<ObjectIdentifier>()
@@ -20,6 +24,8 @@
             retainedPages = uniquePages
             references = uniquePages.map { PageReference(page: $0) }
         }
+
+        // MARK: - Internal
 
         /// 执行完成后只清理确实脱离展示树的页面；重复完成通知无副作用。
         func complete(in navigation: UINavigationController?) {
@@ -43,6 +49,8 @@
             cleanDetachedPages(excluding: nil)
             retainedPages.removeAll()
         }
+
+        // MARK: - Private
 
         private func cleanDetachedPages(excluding navigation: UINavigationController?, dismissed: UINavigationController? = nil) {
             for reference in references {

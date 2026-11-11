@@ -47,7 +47,10 @@ public struct CommunityRouteModule: LYRouteModule {
         }
         builder.page(.flow) { _, context in
             let page = FlowPage(metrics: metrics, context: context)
-            context.present(UINavigationController(rootViewController: page))
+            // 全屏弹出的导航流程：流程内页面以自身为来源继续在弹出栈中导航。
+            let flow = UINavigationController(rootViewController: page)
+            flow.modalPresentationStyle = .fullScreen
+            context.present(flow)
         }
         // 会话型页面：任何 Tab 中已有同一房间就切过去；已在别的房间时先确认离开。
         builder.page(.room, policy: .init(validate: Self.hasID)) { route, context in

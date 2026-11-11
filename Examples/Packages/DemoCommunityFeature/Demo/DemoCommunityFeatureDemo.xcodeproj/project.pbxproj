@@ -37,8 +37,8 @@
 		146178B8CAE7C4EBB07E73B0 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		52DE4ED05673DDFF787C4F09 /* DemoCommunityFeature */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DemoCommunityFeature; path = ..; sourceTree = SOURCE_ROOT; };
 		547141979603B07745243858 /* DemoUIKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DemoUIKit; path = ../../DemoUIKit; sourceTree = SOURCE_ROOT; };
+		58DE3CCD636A523D677BE023 /* LYStackRouter */ = {isa = PBXFileReference; lastKnownFileType = folder; name = LYStackRouter; path = ../../../..; sourceTree = SOURCE_ROOT; };
 		684AE4A29225E917B45E63F1 /* DemoRouteContract */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DemoRouteContract; path = ../../DemoRouteContract; sourceTree = SOURCE_ROOT; };
-		6B361527F50F257A14DD35D4 /* 0.2.0 */ = {isa = PBXFileReference; lastKnownFileType = folder; name = 0.2.0; path = ../../../..; sourceTree = SOURCE_ROOT; };
 		6C329833BEB38C40085040A7 /* DemoCommunityFeatureDemoUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = DemoCommunityFeatureDemoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8AF065A8B1527ABDD8C5DC3A /* DemoCommunityFeatureDemoTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = DemoCommunityFeatureDemoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8C16EE80B94F8223252364C1 /* DemoCommunityFeatureDemo.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = DemoCommunityFeatureDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -93,10 +93,10 @@
 		636684BBD09736D618BCC1B9 /* Packages */ = {
 			isa = PBXGroup;
 			children = (
-				6B361527F50F257A14DD35D4 /* 0.2.0 */,
 				52DE4ED05673DDFF787C4F09 /* DemoCommunityFeature */,
 				684AE4A29225E917B45E63F1 /* DemoRouteContract */,
 				547141979603B07745243858 /* DemoUIKit */,
+				58DE3CCD636A523D677BE023 /* LYStackRouter */,
 			);
 			name = Packages;
 			sourceTree = "<group>";

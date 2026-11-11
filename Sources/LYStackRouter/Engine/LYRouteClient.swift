@@ -3,9 +3,13 @@
 
     /// 可注入业务模块的导航能力。操作在主线程执行，返回实际结算结果。
     public struct LYRouteClient<Route: LYRoutable>: Sendable {
+        // MARK: - Properties
+
         private let openOperation: @MainActor @Sendable (Route, LYOpenOptions) async -> LYOpenResult
         private let urlOperation: @MainActor @Sendable (URL, LYOpenOptions) async -> LYOpenResult
         private let dismissOperation: @MainActor @Sendable (Bool) async -> LYOpenResult
+
+        // MARK: - Initialization
 
         /// 创建客户端，也可注入测试替身记录路由并返回确定结果。
         public init(
@@ -17,6 +21,8 @@
             urlOperation = openURL
             dismissOperation = dismiss
         }
+
+        // MARK: - Public
 
         /// 发起用户导航，选项中的动画与附加值会传入处理器。
         @MainActor @discardableResult
@@ -31,13 +37,15 @@
         }
 
         /// 返回来源页面或关闭来源模态流程。
-        @discardableResult
+        @MainActor @discardableResult
         public func dismiss(animated: Bool = true) async -> LYOpenResult {
             await dismissOperation(animated)
         }
     }
 
     extension LYStackRouter {
+        // MARK: - Client
+
         /// 创建绑定当前会话代次的客户端；绑定页面时仅保留弱引用。
         ///
         /// 登录（nil → 会话）后客户端继续可用；切换账号、退出登录、`resetSession()`、更换宿主或停止路由器后，
@@ -55,6 +63,8 @@
                 return await dismissClient(scope, animated: animated)
             })
         }
+
+        // MARK: - Private
 
         private func isClientScopeValid(_ scope: RouteClientScope) -> Bool {
             !Task.isCancelled && !stopped && host != nil && scope.sessionEpoch == sessionEpoch
@@ -111,9 +121,13 @@
     /// 将弱来源与创建时的会话代次封装在主线程对象中，客户端本身可安全注入并发业务代码。
     @MainActor
     private final class RouteClientScope {
+        // MARK: - Properties
+
         weak var page: UIViewController?
         let hasPage: Bool
         let sessionEpoch: UUID
+
+        // MARK: - Initialization
 
         init(page: UIViewController?, sessionEpoch: UUID) {
             self.page = page

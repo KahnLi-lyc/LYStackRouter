@@ -2,6 +2,8 @@
     import UIKit
 
     extension LYStackRouter {
+        // MARK: - Origin
+
         /// 显式来源必须仍是当前可见导航域的栈顶，不能从被遮挡的旧页面发起导航。
         func isValidOrigin(_ source: UIViewController?) -> Bool {
             guard let source, let routed = routedPage(for: source), isOwnedOrigin(source),
@@ -49,6 +51,8 @@
             return canNavigate(to: placement)
         }
 
+        // MARK: - Execution Domain
+
         /// 模态执行只检查自身导航域；普通执行继续使用宿主声明的当前域。
         func executionDomain(_ execution: NavigationExecution) -> [UINavigationController] {
             if execution.isModal { return execution.targetNavigation.map { [$0] } ?? [] }
@@ -86,6 +90,8 @@
             }
             return nil
         }
+
+        // MARK: - Modal Navigation
 
         /// 首次使用模态栈时接入代理与关闭观察；宿主解绑时由统一失效流程拆除。
         /// 系统导航控制器（相册、视频编辑、邮件、短信）的代理承担业务回调，不接管。

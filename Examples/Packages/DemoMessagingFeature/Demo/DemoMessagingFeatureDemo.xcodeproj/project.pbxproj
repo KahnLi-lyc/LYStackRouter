@@ -43,7 +43,7 @@
 		820F1F69C904EA9F65A4A2B0 /* ModuleRegistrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleRegistrationTests.swift; sourceTree = "<group>"; };
 		8E01A20E6532870A74489B22 /* DemoRouteContract */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DemoRouteContract; path = ../../DemoRouteContract; sourceTree = SOURCE_ROOT; };
 		9F8769501F4A21F425C3FF56 /* DemoUIKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DemoUIKit; path = ../../DemoUIKit; sourceTree = SOURCE_ROOT; };
-		B7E3A0083782B9065687E5BB /* 0.2.0 */ = {isa = PBXFileReference; lastKnownFileType = folder; name = 0.2.0; path = ../../../..; sourceTree = SOURCE_ROOT; };
+		F467E7D8394B4BCBF9B01D6D /* LYStackRouter */ = {isa = PBXFileReference; lastKnownFileType = folder; name = LYStackRouter; path = ../../../..; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -72,10 +72,10 @@
 		9662BB23E85D2D8AFE7EF9CF /* Packages */ = {
 			isa = PBXGroup;
 			children = (
-				B7E3A0083782B9065687E5BB /* 0.2.0 */,
 				6212E2707004C87509D10917 /* DemoMessagingFeature */,
 				8E01A20E6532870A74489B22 /* DemoRouteContract */,
 				9F8769501F4A21F425C3FF56 /* DemoUIKit */,
+				F467E7D8394B4BCBF9B01D6D /* LYStackRouter */,
 			);
 			name = Packages;
 			sourceTree = "<group>";

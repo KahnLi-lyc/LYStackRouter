@@ -2,6 +2,8 @@
     import Foundation
 
     public extension LYStackRouter {
+        // MARK: - Public
+
         /// 检查静态处理能力，不执行拦截器、宿主操作或页面构造。最终结果由打开请求报告。
         func canOpen(_ route: Route, source: LYRouteSource = .user) -> Bool {
             staticFailure(route, source: source) == nil
@@ -12,6 +14,8 @@
             guard let route = route(for: url) else { return false }
             return canOpen(route, source: source)
         }
+
+        // MARK: - Internal
 
         /// 参数校验应为纯判断；此处与实际提交共用同一顺序。
         internal func staticFailure(_ route: Route, source: LYRouteSource) -> LYRouteFailure? {

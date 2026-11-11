@@ -20,89 +20,30 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
 
 final class ModuleSceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
-    private var host: ModuleHost?
-    private var router: LYStackRouter<DemoRoute>?
+    private var demo: ModuleDemo?
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let scene = scene as? UIWindowScene else { return }
-        let metrics = DemoMetrics()
-        let root = DemoPage(pageID: "module.root", title: "DemoMessagingFeature", identity: nil, metrics: metrics)
-        let host = ModuleHost(root: root)
-        var environment = LYRouteEnvironment()
-        environment.provide(DemoMetrics.self, metrics)
         do {
-            let router = try LYStackRouter<DemoRoute>.build(
-                host: host,
+            let demo = try ModuleDemo(
+                scene: scene,
+                title: "DemoMessagingFeature",
                 modules: .explicit([MessagesRouteModule.self]),
-                environment: environment,
-                url: LYURLConfiguration(schemes: ["lydemo"]),
-                fallback: .placeholder,
-                allowsUnregistered: true
+                entries: [
+                    .init(title: "打开模块页面", id: "module.open", route: .chat("c1")),
+                    .init(title: "打开未组装模块", id: "module.fallback", route: .wallet)
+                ]
             )
-            let client = router.makeClient(from: root)
-            root.open = { route in Task { _ = await client.open(route) } }
-            root.loadViewIfNeeded()
-            root.addButton("打开模块页面", id: "module.open") { [weak root] in root?.open(.chat("c1")) }
-            root.addButton("打开未组装模块", id: "module.fallback") { [weak root] in root?.open(.wallet) }
-
-            self.router = router
+            self.demo = demo
+            window = demo.window
         } catch {
             fatalError("独立模块组装失败：\(error)")
         }
-        self.host = host
-        let window = UIWindow(windowScene: scene)
-        window.rootViewController = host.navigationController
-        window.makeKeyAndVisible()
-        self.window = window
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
-        router?.tearDown()
-        router = nil
-        host = nil
+        demo?.tearDown()
+        demo = nil
         window = nil
-    }
-}
-
-/// 独立 Demo 将模块声明的消息域映射到唯一导航栈。
-@MainActor
-private final class ModuleHost: LYRouterHost, LYNavigationEventSource {
-    private let stack: LYSingleStackHost
-
-    init(root: UIViewController) {
-        stack = LYSingleStackHost(root: root)
-    }
-
-    var navigationController: UINavigationController {
-        stack.navigationController
-    }
-
-    var routerSessionID: String? {
-        nil
-    }
-
-    var isRouterReady: Bool {
-        true
-    }
-
-    var routerRootViewController: UIViewController? {
-        navigationController
-    }
-
-    var activeNavigationController: UINavigationController? {
-        navigationController
-    }
-
-    var onNavigationDidShow: ((UINavigationController) -> Void)? {
-        get { stack.onNavigationDidShow }
-        set { stack.onNavigationDidShow = newValue }
-    }
-
-    func navigationDomain(for placement: LYRoutePlacement) -> [UINavigationController] {
-        placement == .current || placement == .messages ? [navigationController] : []
-    }
-
-    func select(_ placement: LYRoutePlacement) -> UINavigationController? {
-        placement == .current || placement == .messages ? navigationController : nil
     }
 }

@@ -35,6 +35,7 @@ targets:
   DemoMessagingFeatureDemoTests:
     type: bundle.unit-test
     platform: iOS
+    # Xcode 27 的 XCTest 最低支持 iOS 17；App 本身仍为 iOS 16。
     deploymentTarget: "17.0"
     sources: [../Tests]
     dependencies:
@@ -45,6 +46,7 @@ targets:
   DemoMessagingFeatureDemoUITests:
     type: bundle.ui-testing
     platform: iOS
+    # Xcode 27 的 XCTest 最低支持 iOS 17；App 本身仍为 iOS 16。
     deploymentTarget: "17.0"
     sources: [UITests]
     dependencies:
