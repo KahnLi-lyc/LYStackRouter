@@ -88,7 +88,7 @@ final class HostedTransitionTests: XCTestCase {
 
     /// 先建宿主、后放导航栈（示例 App 曾经的顺序）：准备期间用户点系统返回，不经过路由器。
     /// 宿主必须收到 UIKit 的 didShow，才能在准备结束前以 `.contextChanged` 结算原请求。
-    func testSystemBackDuringPreparationPreemptsWhenTabsAreAddedAfterHost() async throws {
+    func testSystemBackDuringPreparationPreemptsWhenTabsAreAddedAfterHost() async {
         let tabs = UITabBarController()
         let lateHost = LYTabBarHost(
             tabBarController: tabs,
