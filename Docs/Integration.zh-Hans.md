@@ -95,7 +95,7 @@ let router = try LYStackRouter<AppRoute>.build(
   ```
 
 - 重定向后的路由重新经过完整准入，重定向深度上限为 4。
-- `router.rewrite` 可以随时整体替换。`disabledKinds` 中的路由以 `.unavailable` 失败；配置了 `fallback` 时交给兜底展示。
+- `router.rewrite` 可以随时整体替换。`disabledKinds` 中的路由以 `.unavailable` 失败；配置了 `fallback` 时交给兜底展示。兜底前仍会检查外部白名单、参数校验与拦截器，降级不会放宽原入口的约束。
 - 观察者只能读取，不能改变执行结果。回调中没有 URL 原文，日志里不要再自行拼接参数。
 
 ## 5. 模块 Demo

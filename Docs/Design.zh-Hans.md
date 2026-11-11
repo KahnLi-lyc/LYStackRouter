@@ -29,14 +29,16 @@
 `request` / `open` / `openURL` 都进入同一个准入流程，所有检查都在切换 Tab、创建页面等副作用之前完成：
 
 1. 路由器已停止 → `failed(.stopped)`
-2. 没有登记 → 允许未登记且有兜底时交给兜底，否则 `failed(.unregistered)`
-3. 策略为禁用或被重写禁用 → 有兜底时交给兜底，否则 `failed(.unavailable)`
+2. 没有登记 → 本地请求在允许未登记且有兜底时交给兜底；外部请求一律 `failed(.unregistered)`（未注册路由没有策略，不能推断为允许外部打开）
+3. 策略为禁用或被重写禁用，且没有兜底 → `failed(.unavailable)`
 4. 外部来源且未放开 `allowsExternal` → `failed(.notExternal)`
 5. 参数校验失败 → `failed(.invalidParameter)`
 6. 拦截器按优先级执行：`reject` 失败；`redirect` 让新路由重新走完整流程（深度上限 4）；`deferUntilReady` 外部请求等待、用户请求忽略
-7. 策略为占位且有兜底 → 交给兜底
+7. 选择处理器：禁用路由交给兜底（原因 `unavailable`），占位路由在有兜底时交给兜底（原因 `placeholder`），其余交给登记的处理器
 8. 宿主与目标域是否空闲（没有进行中的执行、弹窗或转场）→ 不空闲时外部请求等待、用户请求 `ignored`
 9. 取得执行权，切换目标域，调用处理器
+
+兜底可以展示页面，也可以打开 H5 或执行自定义动作，所以禁用与占位路由走兜底前同样经过第 4～6 步，降级不会放宽原入口的约束。
 
 URL 入口先按模板解析成路由，解析失败为 `failed(.unmatchedURL)`；之后与类型化请求相同。
 

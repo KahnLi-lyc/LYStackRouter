@@ -118,7 +118,7 @@ The macro writes a record into `__DATA,__lystackrouter` at compile time. `build(
 | `LYRouteInterceptor` | Priority-ordered, synchronous, typed decision: `proceed`, `redirect(Route)`, `reject(Failure)`, `deferUntilReady`. Runs before any side effect. |
 | `LYRouteRewrite` | Codable remote config: disable kinds or replace exact URL templates. |
 | `LYRouteObserver` | Read-only analytics hooks. Receives kind, source and result, never the raw URL. |
-| `LYRouteFallback` | Handles unregistered (non-exhaustive builds only), placeholder and disabled routes, e.g. `.placeholder`. |
+| `LYRouteFallback` | Handles placeholder and disabled routes, and unregistered routes for local requests in non-exhaustive builds, e.g. `.placeholder`. It runs only after the external allowlist, validation and interceptors pass. |
 | `LYRouteContext` | What a handler gets: `show(identity:)`, `present`, `prepare` + `isStillValid()`, `confirm`, `open`, `back(from:)`, `replaceStack`, `revealExisting(where:)`, `markPerformed`, `fail`. |
 | `LYRouterHost` | Your container: session ID, readiness, navigation stacks per placement, `select` / `reveal`, and a `customShow` hook for split containers. `LYSingleStackHost` and `LYTabBarHost` are built in. |
 | `LYOpenResult` | `created`, `reused`, `alreadyVisible`, `performed`, `awaitingConfirmation`, `deferred`, `ignored`, `failed(LYRouteFailure)`. |

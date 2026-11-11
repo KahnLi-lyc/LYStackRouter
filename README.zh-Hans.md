@@ -118,7 +118,7 @@ modules: .discovered(plus: [FakeClubModule.self], excluding: ["club"]) // 用测
 | `LYRouteInterceptor` | 按优先级同步执行，返回类型化决策：`proceed`、`redirect(Route)`、`reject(Failure)`、`deferUntilReady`；在任何副作用之前运行。 |
 | `LYRouteRewrite` | 可 Codable 下发的远程配置：禁用某些路由种类，或精确替换 URL 模板。 |
 | `LYRouteObserver` | 只读的埋点回调，只拿到种类、来源与结果，不拿 URL 原文。 |
-| `LYRouteFallback` | 处理未注册（仅非穷尽构建）、占位与禁用的路由，例如 `.placeholder`。 |
+| `LYRouteFallback` | 处理占位与禁用的路由，以及非穷尽构建中本地请求的未注册路由，例如 `.placeholder`。只在外部白名单、参数校验与拦截器都通过后执行。 |
 | `LYRouteContext` | 处理器拿到的上下文：`show(identity:)`、`present`、`prepare` + `isStillValid()`、`confirm`、`open`、`back(from:)`、`replaceStack`、`revealExisting(where:)`、`markPerformed`、`fail`。 |
 | `LYRouterHost` | 接入方的容器：会话标识、是否就绪、各目标域的导航栈、`select` / `reveal`，以及给分栏容器用的 `customShow` 钩子。内置 `LYSingleStackHost` 与 `LYTabBarHost`。 |
 | `LYOpenResult` | `created`、`reused`、`alreadyVisible`、`performed`、`awaitingConfirmation`、`deferred`、`ignored`、`failed(LYRouteFailure)`。 |

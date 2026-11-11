@@ -10,24 +10,23 @@
             var execution: NavigationExecution?
         }
 
-        /// 所有路由请求的入口。准入顺序：停止 → 注册 → 禁用 → 外部白名单 → 校验 → 拦截 → 宿主状态 → 执行。
-        /// 准入在切换目标域、创建页面等任何副作用之前完成。
+        /// 所有路由请求的入口。准入顺序：停止 → 注册 → 禁用且无兜底 → 外部白名单 → 校验 → 拦截 → 选择处理器 → 宿主状态 → 执行。
+        /// 准入在切换目标域、创建页面等任何副作用之前完成；禁用与占位路由走兜底前同样经过完整准入。
         func submit(_ route: Route, source: LYRouteSource) -> Submission {
             let kind = route.kind
             guard !stopped else { return settled(kind, source, .failed(.stopped)) }
 
             guard let entry = registry.entries[kind] else {
-                guard allowsUnregistered, let fallback else { return settled(kind, source, .failed(.unregistered)) }
+                // 未注册的路由没有策略可查，不能推断为允许外部打开；兜底只服务本地请求（例如模块 Demo）。
+                guard allowsUnregistered, !source.isExternal, let fallback else {
+                    return settled(kind, source, .failed(.unregistered))
+                }
                 return admit(route, source, placement: .current, proposed: .failed(.unregistered)) { context in
                     fallback.handle(route, .unregistered, context)
                 }
             }
-            if entry.policy.status == .disabled || rewrite.isDisabled(kind) {
-                guard let fallback else { return settled(kind, source, .failed(.unavailable)) }
-                return admit(route, source, placement: .current, proposed: .failed(.unavailable)) { context in
-                    fallback.handle(route, .unavailable, context)
-                }
-            }
+            let isDisabled = entry.policy.status == .disabled || rewrite.isDisabled(kind)
+            if isDisabled, fallback == nil { return settled(kind, source, .failed(.unavailable)) }
             if source.isExternal, !entry.policy.allowsExternal { return settled(kind, source, .failed(.notExternal)) }
             guard entry.policy.validate(route) else { return settled(kind, source, .failed(.invalidParameter)) }
 
@@ -48,9 +47,14 @@
                 defer { redirectDepth -= 1 }
                 return submit(target, source: source)
             case .deferUntilReady:
-                return deferOrIgnore(route, source, placement: entry.policy.placement)
+                return deferOrIgnore(route, source, placement: isDisabled ? .current : entry.policy.placement)
             }
 
+            if isDisabled, let fallback {
+                return admit(route, source, placement: .current, proposed: .failed(.unavailable)) { context in
+                    fallback.handle(route, .unavailable, context)
+                }
+            }
             if entry.policy.status == .placeholder, let fallback {
                 return admit(route, source, placement: entry.policy.placement, proposed: .failed(.unavailable)) { context in
                     fallback.handle(route, .placeholder, context)
