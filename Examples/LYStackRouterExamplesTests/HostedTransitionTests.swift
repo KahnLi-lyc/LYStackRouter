@@ -22,7 +22,11 @@ final class HostedTransitionTests: XCTestCase {
         window = UIWindow(windowScene: scene)
         window.rootViewController = host.tabBarController
         window.makeKeyAndVisible()
-        await waitUntil { self.host.tabBarController.viewIfLoaded?.window != nil && self.isIdle }
+        // 宿主 App 刚启动时可能尚未进入前台活跃状态，此时 UIKit 会推迟带动画的栈操作。
+        await waitUntil {
+            UIApplication.shared.applicationState == .active
+                && self.host.tabBarController.viewIfLoaded?.window != nil && self.isIdle
+        }
     }
 
     override func tearDown() async throws {
