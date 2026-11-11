@@ -27,6 +27,44 @@ final class URLRoutingTests: XCTestCase {
         XCTAssertNil(route("http://app.example.com/club/42"))
     }
 
+    func testSchemeMutationKeepsCaseInsensitiveMatching() {
+        var configuration = LYURLConfiguration(schemes: ["initial"])
+        configuration.schemes = ["MYAPP"]
+        XCTAssertEqual(registry.route(for: url("myapp://club/42"), configuration: configuration), .club("42"))
+        configuration.schemes.insert("SECOND")
+        XCTAssertEqual(registry.route(for: url("second://club/42"), configuration: configuration), .club("42"))
+        XCTAssertEqual(configuration.schemes, ["myapp", "second"])
+    }
+
+    func testUniversalLinkHostMutationKeepsCaseInsensitiveMatchingAndGeneration() throws {
+        var configuration = LYURLConfiguration(schemes: ["myapp"])
+        configuration.universalLinkHosts = ["APP.EXAMPLE.COM"]
+        XCTAssertEqual(registry.route(for: url("https://app.example.com/club/42"), configuration: configuration), .club("42"))
+        configuration.universalLinkHosts.insert("OTHER.EXAMPLE.COM")
+        let generated = try XCTUnwrap(registry.url(for: .club("42"), configuration: configuration, universalLinkHost: "OTHER.EXAMPLE.COM"))
+        XCTAssertEqual(generated.absoluteString, "https://other.example.com/club/42")
+        XCTAssertEqual(registry.route(for: generated, configuration: configuration), .club("42"))
+        XCTAssertEqual(configuration.universalLinkHosts, ["app.example.com", "other.example.com"])
+    }
+
+    func testPreferredSchemeMutationUsesNormalizedAllowedScheme() throws {
+        var configuration = LYURLConfiguration(schemes: ["myapp", "second"])
+        configuration.preferredScheme = "SECOND"
+        let generated = try XCTUnwrap(registry.url(for: .club("42"), configuration: configuration))
+        XCTAssertEqual(configuration.preferredScheme, "second")
+        XCTAssertEqual(generated.absoluteString, "second://club/42")
+        XCTAssertEqual(registry.route(for: generated, configuration: configuration), .club("42"))
+
+        configuration.preferredScheme = "UNREGISTERED"
+        XCTAssertNil(registry.url(for: .club("42"), configuration: configuration))
+    }
+
+    func testEncodedPathSegmentsDecodeOnceAndKeepValueCase() {
+        XCTAssertEqual(route("myapp://club/100%25"), .club("100%"))
+        XCTAssertEqual(route("myapp://club/a%252Fb"), .club("a%2Fb"))
+        XCTAssertEqual(route("myapp://club/MiXeD/"), .club("MiXeD"))
+    }
+
     func testOtherSchemesAndEmptyPathsAreRejected() {
         XCTAssertNil(route("other://club/42"))
         XCTAssertNil(route("https://app.example.com/"))

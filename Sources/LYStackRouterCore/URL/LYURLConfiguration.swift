@@ -9,11 +9,19 @@ public struct LYURLConfiguration: Hashable, Sendable {
     // MARK: - Properties
 
     /// 本 App 的自定义 scheme，比较时不区分大小写。
-    public var schemes: Set<String>
+    public var schemes: Set<String> {
+        didSet { schemes = Set(schemes.map { $0.lowercased() }) }
+    }
+
     /// 允许的 Universal Link host，比较时不区分大小写。
-    public var universalLinkHosts: Set<String>
+    public var universalLinkHosts: Set<String> {
+        didSet { universalLinkHosts = Set(universalLinkHosts.map { $0.lowercased() }) }
+    }
+
     /// 生成 URL 时使用的自定义 scheme；为 nil 时取按字母排序的第一个。
-    public var preferredScheme: String?
+    public var preferredScheme: String? {
+        didSet { preferredScheme = preferredScheme?.lowercased() }
+    }
 
     // MARK: - Initialization
 
