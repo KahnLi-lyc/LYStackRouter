@@ -1,5 +1,6 @@
-import DemoMessages
-import DemoRoutes
+import DemoMessagingFeature
+import DemoRouteContract
+import DemoUIKit
 import LYStackRouter
 import UIKit
 
@@ -7,7 +8,7 @@ import UIKit
 ///
 /// 演示自定义宿主无需重写 Tab 管理：除 `customShow` 外全部转交给 `LYTabBarHost`。
 @MainActor
-final class DemoHost: LYRouterHost, LYNavigationEventSource {
+final class DemoHost: NSObject, LYRouterHost, LYNavigationEventSource, UINavigationControllerDelegate {
     // MARK: - Properties
 
     let tabs: LYTabBarHost
@@ -20,6 +21,7 @@ final class DemoHost: LYRouterHost, LYNavigationEventSource {
 
     init(tabs: LYTabBarHost) {
         self.tabs = tabs
+        super.init()
     }
 
     // MARK: - LYRouterHost
@@ -41,11 +43,12 @@ final class DemoHost: LYRouterHost, LYNavigationEventSource {
     }
 
     var allNavigationControllers: [UINavigationController] {
-        tabs.allNavigationControllers
+        tabs.allNavigationControllers + containers.map(\.detailNavigation)
     }
 
     func navigationDomain(for placement: LYRoutePlacement) -> [UINavigationController] {
-        tabs.navigationDomain(for: placement)
+        let primary = tabs.navigationDomain(for: placement)
+        return primary + primary.compactMap { ($0.viewControllers.first as? ConversationsViewController)?.detailNavigation }
     }
 
     func select(_ placement: LYRoutePlacement) -> UINavigationController? {
@@ -53,7 +56,17 @@ final class DemoHost: LYRouterHost, LYNavigationEventSource {
     }
 
     func reveal(_ navigationController: UINavigationController) {
-        tabs.reveal(navigationController)
+        let owner = tabs.allNavigationControllers.first {
+            ($0.viewControllers.first as? ConversationsViewController)?.detailNavigation === navigationController
+        }
+        tabs.reveal(owner ?? navigationController)
+        if let owner, let container = owner.viewControllers.first, owner.topViewController !== container {
+            let removed = Array(owner.viewControllers.dropFirst())
+            owner.setViewControllers([container], animated: false)
+            for page in removed where page.parent == nil {
+                tearDown(page)
+            }
+        }
     }
 
     /// 消息 Tab 停在会话容器时，私信嵌入容器的详情区，不再 push。
@@ -67,10 +80,39 @@ final class DemoHost: LYRouterHost, LYNavigationEventSource {
         return container.showDetail(identity: identity) { page() }
     }
 
+    /// 自定义详情容器同时接收调用方的展示选项。
+    func customShow(
+        _ page: @autoclosure () -> UIViewController,
+        identity: AnyHashable?,
+        in navigationController: UINavigationController,
+        options: LYOpenOptions
+    ) -> LYOpenResult? {
+        guard case .chat = identity?.base as? DemoPageIdentity,
+              let container = navigationController.topViewController as? ConversationsViewController else { return nil }
+        return container.showDetail(identity: identity, animated: options.animated) { page() }
+    }
+
+    func navigationController(
+        _ navigationController: UINavigationController,
+        didShow viewController: UIViewController,
+        animated: Bool
+    ) {
+        onNavigationDidShow?(navigationController)
+    }
+
+    private var containers: [ConversationsViewController] {
+        tabs.allNavigationControllers.compactMap { $0.viewControllers.first as? ConversationsViewController }
+    }
+
     // MARK: - LYNavigationEventSource
 
     var onNavigationDidShow: ((UINavigationController) -> Void)? {
         get { tabs.onNavigationDidShow }
-        set { tabs.onNavigationDidShow = newValue }
+        set {
+            tabs.onNavigationDidShow = newValue
+            for container in containers {
+                container.detailNavigation.delegate = self
+            }
+        }
     }
 }

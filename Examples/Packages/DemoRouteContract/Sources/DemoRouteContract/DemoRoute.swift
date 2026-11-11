@@ -9,9 +9,10 @@ public enum DemoRoute: LYRoutable {
     case chat(String)
     case login
     case wallet
+    case flow
 
     public enum Kind: CaseIterable, Sendable {
-        case club, member, slowClub, room, chat, login, wallet
+        case club, member, slowClub, room, chat, login, wallet, flow
     }
 
     public var kind: Kind {
@@ -23,6 +24,7 @@ public enum DemoRoute: LYRoutable {
         case .chat: .chat
         case .login: .login
         case .wallet: .wallet
+        case .flow: .flow
         }
     }
 }

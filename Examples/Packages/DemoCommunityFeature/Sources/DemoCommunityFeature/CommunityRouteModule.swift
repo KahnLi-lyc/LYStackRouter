@@ -1,4 +1,5 @@
-import DemoRoutes
+import DemoRouteContract
+import DemoUIKit
 import LYStackRouterDiscovery
 import UIKit
 
@@ -44,16 +45,20 @@ public struct CommunityRouteModule: LYRouteModule {
                 context.show(identity: DemoPageIdentity.club(id)) { ClubPage(id: id, metrics: metrics, context: context) }
             }
         }
+        builder.page(.flow) { _, context in
+            let page = FlowPage(metrics: metrics, context: context)
+            context.present(UINavigationController(rootViewController: page))
+        }
         // 会话型页面：任何 Tab 中已有同一房间就切过去；已在别的房间时先确认离开。
         builder.page(.room, policy: .init(validate: Self.hasID)) { route, context in
             guard case let .room(id) = route else { return }
             if context.revealExisting(where: { ($0 as? RoomPage)?.roomID == id }) { return }
-            guard let current = rooms.current else {
+            guard let currentID = rooms.roomID, currentID != id else {
                 context.show(identity: DemoPageIdentity.room(id)) { rooms.enter(id, metrics: metrics, context: context) }
                 return
             }
             context.confirm(
-                title: "离开房间 \(current.roomID)？",
+                title: "离开房间 \(currentID)？",
                 message: "进入房间 \(id) 前需要先离开当前房间",
                 confirmTitle: "离开并进入",
                 cancelTitle: "留下"

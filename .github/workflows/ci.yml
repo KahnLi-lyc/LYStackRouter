@@ -86,6 +86,19 @@ jobs:
         env:
           NSUnbufferedIO: YES
 
+      - name: Independent feature demo registration tests
+        run: |
+          for feature in DemoCommunityFeature DemoMessagingFeature; do
+            xcodebuild test \
+              -project "Examples/Packages/$feature/Demo/${feature}Demo.xcodeproj" \
+              -scheme "${feature}Demo" \
+              -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" \
+              -only-testing:"${feature}DemoTests" \
+              CODE_SIGNING_ALLOWED=NO
+          done
+        env:
+          NSUnbufferedIO: YES
+
   lint:
     name: SwiftFormat
     runs-on: macos-26

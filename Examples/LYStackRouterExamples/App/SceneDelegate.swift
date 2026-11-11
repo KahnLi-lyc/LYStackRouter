@@ -1,5 +1,6 @@
-import DemoMessages
-import DemoRoutes
+import DemoMessagingFeature
+import DemoRouteContract
+import DemoUIKit
 import LYStackRouterDiscovery
 import UIKit
 
@@ -50,6 +51,19 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         home.open = open
         conversations.open = open
         me.open = open
+        home.canOpenFlow = { [weak router] in router?.canOpen(.flow) == true }
+        home.openWithoutAnimation = { [weak router, weak home] in
+            guard let router, let home else { return }
+            let client = router.makeClient(from: home)
+            Task { _ = await client.open(.club("options"), options: LYOpenOptions(animated: false, extras: ["entry": "home"])) }
+        }
+        home.showWindowContext = { [weak home] in
+            guard let home, let scene = home.view.window?.windowScene,
+                  let top = LYWindowContext.topViewController(in: scene) else { return }
+            let alert = UIAlertController(title: "窗口上下文", message: "normal window: \(LYWindowContext.mainWindow(in: scene) != nil)", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "关闭", style: .default))
+            top.present(alert, animated: true)
+        }
         home.openURL = { [weak self] url in self?.openDeepLink(url) }
         me.signOut = { [weak self] in self?.setSignedIn(false) }
         me.setDegraded = { [weak router] degraded in

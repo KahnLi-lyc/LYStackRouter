@@ -1,4 +1,5 @@
-import DemoRoutes
+import DemoRouteContract
+import DemoUIKit
 import UIKit
 
 /// 我的 Tab 的根页面：组装方式、登录状态、降级开关与等待中的深链演示。

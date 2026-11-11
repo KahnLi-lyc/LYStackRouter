@@ -1,6 +1,7 @@
-import DemoCommunity
-import DemoMessages
-import DemoRoutes
+import DemoCommunityFeature
+import DemoMessagingFeature
+import DemoRouteContract
+import DemoUIKit
 import LYStackRouterDiscovery
 import UIKit
 

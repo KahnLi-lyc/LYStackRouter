@@ -8,8 +8,14 @@ options:
 packages:
   LYStackRouter:
     path: ..
-  DemoFeatures:
-    path: DemoFeatures
+  DemoRouteContract:
+    path: Packages/DemoRouteContract
+  DemoUIKit:
+    path: Packages/DemoUIKit
+  DemoCommunityFeature:
+    path: Packages/DemoCommunityFeature
+  DemoMessagingFeature:
+    path: Packages/DemoMessagingFeature
 
 settings:
   base:
@@ -29,14 +35,16 @@ targets:
           - CFBundleURLName: com.kahnli.LYStackRouterExamples
             CFBundleURLSchemes: [lydemo]
     dependencies:
+      - package: DemoUIKit
+        product: DemoUIKit
       - package: LYStackRouter
         product: LYStackRouterDiscovery
-      - package: DemoFeatures
-        product: DemoRoutes
-      - package: DemoFeatures
-        product: DemoCommunity
-      - package: DemoFeatures
-        product: DemoMessages
+      - package: DemoRouteContract
+        product: DemoRouteContract
+      - package: DemoCommunityFeature
+        product: DemoCommunityFeature
+      - package: DemoMessagingFeature
+        product: DemoMessagingFeature
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.kahnli.LYStackRouterExamples

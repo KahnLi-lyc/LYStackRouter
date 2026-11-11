@@ -1,0 +1,61 @@
+name: DemoCommunityFeatureDemo
+options:
+  bundleIdPrefix: com.kahnli
+  deploymentTarget:
+    iOS: "16.0"
+packages:
+  LYStackRouter:
+    path: ../../../..
+  DemoCommunityFeature:
+    path: ..
+  DemoRouteContract:
+    path: ../../DemoRouteContract
+  DemoUIKit:
+    path: ../../DemoUIKit
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+targets:
+  DemoCommunityFeatureDemo:
+    type: application
+    platform: iOS
+    sources: [Sources]
+    dependencies:
+      - package: DemoCommunityFeature
+      - package: DemoRouteContract
+      - package: DemoUIKit
+      - package: LYStackRouter
+        product: LYStackRouter
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.kahnli.DemoCommunityFeatureDemo
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+  DemoCommunityFeatureDemoTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources: [../Tests]
+    dependencies:
+      - target: DemoCommunityFeatureDemo
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+  DemoCommunityFeatureDemoUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources: [UITests]
+    dependencies:
+      - target: DemoCommunityFeatureDemo
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  DemoCommunityFeatureDemo:
+    build:
+      targets:
+        DemoCommunityFeatureDemo: all
+    test:
+      targets: [DemoCommunityFeatureDemoTests, DemoCommunityFeatureDemoUITests]

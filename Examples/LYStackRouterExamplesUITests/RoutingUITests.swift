@@ -85,7 +85,7 @@ final class RoutingUITests: XCTestCase {
         tapBack()
         tap("home.url.chat")
         waitFor(page("chat.c2"))
-        XCTAssertTrue(app.tabBars.buttons["消息"].isSelected)
+        XCTAssertTrue(isTabSelected("消息"))
     }
 
     // MARK: - Interceptors
@@ -108,7 +108,7 @@ final class RoutingUITests: XCTestCase {
         tap("home.club.A")
         tap("open.chat.owner")
         waitFor(page("chat.owner-A"))
-        XCTAssertTrue(app.tabBars.buttons["消息"].isSelected)
+        XCTAssertTrue(isTabSelected("消息"))
         XCTAssertTrue(page("conversations").exists, "私信嵌入会话容器，没有被 push")
 
         tap("open.chat.c1")
@@ -129,7 +129,7 @@ final class RoutingUITests: XCTestCase {
         tap("open.chat.c1")
         tap("chat.open.room.r1")
         waitFor(page("room.r1"))
-        XCTAssertTrue(app.tabBars.buttons["首页"].isSelected)
+        XCTAssertTrue(isTabSelected("首页"))
 
         tap("open.room.r2")
         app.alerts.buttons["留下"].tap()
@@ -165,6 +165,38 @@ final class RoutingUITests: XCTestCase {
         waitFor(page("member.m1"))
     }
 
+    func testModalWorkflowRoutesInsidePresentedStack() {
+        launch()
+        tap("home.flow")
+        waitFor(page("flow"))
+        tap("flow.member")
+        waitFor(page("member.modal"))
+        tapBack()
+        waitFor(page("flow"))
+        tap("flow.close")
+        waitFor(page("home"))
+    }
+
+    func testOpenOptionsReachFeatureWithoutAnimation() {
+        launch()
+        tap("home.noAnimation")
+        waitFor(page("club.options"))
+        XCTAssertEqual(app.staticTexts["club.entry"].label, "entry home")
+    }
+
+    func testMinimizedRoomRestoresTheSameBusinessSession() {
+        launch()
+        tap("home.club.A")
+        tap("open.room.r1")
+        waitFor(page("room.r1"))
+        XCTAssertEqual(app.staticTexts["room.session"].label, "session r1 · started 1")
+        tap("room.minimize")
+        waitFor(page("club.A"))
+        tap("open.room.r1")
+        waitFor(page("room.r1"))
+        XCTAssertEqual(app.staticTexts["room.session"].label, "session r1 · started 1")
+    }
+
     // MARK: - Private
 
     private func launch(assembly: String = "discovered") {
@@ -187,6 +219,12 @@ final class RoutingUITests: XCTestCase {
         tap("open.club.A")
         waitFor(page("club.A"))
         waitForLabel(status("club.A"), containing: "depth 2 · cleaned 2 · last club: reused")
+    }
+
+    private func isTabSelected(_ title: String) -> Bool {
+        let bar = app.tabBars.firstMatch
+        if bar.exists { return bar.buttons[title].isSelected }
+        return app.buttons[title].firstMatch.isSelected
     }
 
     private func page(_ id: String) -> XCUIElement {

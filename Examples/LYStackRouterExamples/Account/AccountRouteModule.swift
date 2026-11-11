@@ -1,4 +1,5 @@
-import DemoRoutes
+import DemoRouteContract
+import DemoUIKit
 import LYStackRouterDiscovery
 import UIKit
 

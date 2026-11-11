@@ -1,4 +1,5 @@
-import DemoRoutes
+import DemoRouteContract
+import DemoUIKit
 import LYStackRouterDiscovery
 import UIKit
 
@@ -37,7 +38,8 @@ public struct MessagesRouteModule: LYRouteModule {
 final class ChatPage: DemoPage {
     init(id: String, metrics: DemoMetrics, context: LYRouteContext<DemoRoute>) {
         super.init(pageID: "chat.\(id)", title: "私信 \(id)", identity: .chat(id), metrics: metrics)
-        open = { context.open($0) }
+        let client = context.makeClient(from: self)
+        open = { route in Task { _ = await client.open(route) } }
     }
 
     override func viewDidLoad() {

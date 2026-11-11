@@ -1,3 +1,4 @@
+import DemoRouteContract
 import LYStackRouter
 import UIKit
 
@@ -16,6 +17,7 @@ open class DemoPage: UIViewController, LYPageIdentifiable, LYRoutePageLifecycle 
     /// 发起新的用户导航；由路由处理器或宿主注入。
     public var open: (DemoRoute) -> Void = { _ in }
 
+    private var wasRemoved = false
     private let stack = UIStackView()
     private let statusLabel = UILabel()
 
@@ -85,18 +87,23 @@ open class DemoPage: UIViewController, LYPageIdentifiable, LYRoutePageLifecycle 
     // MARK: - LYRoutePageLifecycle
 
     open func routerDidRemovePage() {
+        guard !wasRemoved else { return }
+        wasRemoved = true
+        NotificationCenter.default.removeObserver(self)
         metrics.pageWasRemoved()
     }
 
     // MARK: - Public
 
     /// 添加一个按钮，无障碍标识为 `id`。
-    public func addButton(_ title: String, id: String, action: @escaping @MainActor () -> Void) {
+    @discardableResult
+    public func addButton(_ title: String, id: String, action: @escaping @MainActor () -> Void) -> UIButton {
         var configuration = UIButton.Configuration.tinted()
         configuration.title = title
         let button = UIButton(configuration: configuration, primaryAction: UIAction { _ in action() })
         button.accessibilityIdentifier = id
         stack.addArrangedSubview(button)
+        return button
     }
 
     /// 添加一段说明文字。
