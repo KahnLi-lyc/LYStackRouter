@@ -176,8 +176,9 @@
                     transitionWaiters[id] = continuation
                     start { [weak self] in self?.finishTransitionWait(id) }
                 }
-            } onCancel: { [weak self] in
-                Task { @MainActor in self?.finishTransitionWait(id) }
+            } onCancel: {
+                // 在任务内弱引用：把外层弱捕获的变量再传进任务，Swift 6.3 会报 sending 'self' 数据竞争。
+                Task { @MainActor [weak self] in self?.finishTransitionWait(id) }
             }
         }
 
