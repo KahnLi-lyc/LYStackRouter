@@ -27,6 +27,12 @@ final class URLRoutingTests: XCTestCase {
         XCTAssertNil(route("http://app.example.com/club/42"))
     }
 
+    /// 末尾斜杠与重复斜杠被忽略，不影响段数匹配。
+    func testTrailingSlashIsIgnored() {
+        XCTAssertEqual(route("myapp://club/42/"), .club("42"))
+        XCTAssertEqual(route("https://app.example.com/club/42/"), .club("42"))
+    }
+
     func testSchemeMutationKeepsCaseInsensitiveMatching() {
         var configuration = LYURLConfiguration(schemes: ["initial"])
         configuration.schemes = ["MYAPP"]

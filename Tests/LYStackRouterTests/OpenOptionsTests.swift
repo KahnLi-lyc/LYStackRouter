@@ -26,6 +26,61 @@
             withExtendedLifetime(window) {}
         }
 
+        /// `context.replaceStack` 默认跟随请求的动画选项，显式参数优先。
+        func testReplaceStackFollowsRequestAnimationAndExplicitOverride() throws {
+            let navigation = AnimationRecordingNavigationController()
+            navigation.setViewControllers([UIViewController(), UIViewController()], animated: false)
+            let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+            window.addSubview(navigation.view)
+            let host = LYSingleStackHost(navigationController: navigation)
+            let router = try LYStackRouter<AppRoute>.build(
+                host: host,
+                modules: .explicit([ReplaceModule.self]),
+                allowsUnregistered: true
+            )
+            defer { router.tearDown() }
+
+            XCTAssertEqual(router.request(.club("default"), options: .init(animated: false)), .created)
+            XCTAssertEqual(navigation.lastSetAnimated, false)
+            XCTAssertEqual(router.request(.club("override"), options: .init(animated: false)), .created)
+            XCTAssertEqual(navigation.lastSetAnimated, true)
+            withExtendedLifetime(window) {}
+        }
+
+        /// 静态检查与实际提交逐项一致：`canOpen` 为 false 时提交以同一失败结束；为 true 时提交不会因静态规则失败。
+        func testStaticChecksAgreeWithSubmissionAcrossSourcesAndFallbacks() async throws {
+            let probe = OpenProbe()
+            let host = LYSingleStackHost(root: UIViewController())
+            let router = try makeOptionsRouter(host: host, probe: probe, fallback: .placeholder)
+            let staticFailures: Set<LYOpenResult> = [
+                .failed(.unregistered), .failed(.unavailable), .failed(.notExternal), .failed(.invalidParameter), .failed(.stopped)
+            ]
+            let cases: [(AppRoute, LYRouteSource, Bool, LYOpenResult?)] = [
+                (.club("1"), .user, true, .performed),
+                (.club("1"), .push, true, .performed),
+                (.club(""), .user, false, .failed(.invalidParameter)),
+                (.profile("p"), .user, true, .performed),
+                (.profile("p"), .deepLink, false, .failed(.notExternal)),
+                (.room("r"), .user, true, nil),
+                (.room("r"), .push, false, .failed(.unregistered)),
+                (.settings, .user, true, nil),
+                (.wallet, .user, true, nil)
+            ]
+            for (route, source, expected, result) in cases {
+                XCTAssertEqual(router.canOpen(route, source: source), expected, "\(route) \(source)")
+                let opened = await router.open(route, source: source, options: .init(animated: false))
+                if let result {
+                    XCTAssertEqual(opened, result, "\(route) \(source)")
+                } else {
+                    XCTAssertFalse(staticFailures.contains(opened), "\(route) \(source) 不应因静态规则失败：\(opened)")
+                }
+            }
+            router.tearDown()
+            XCTAssertFalse(router.canOpen(.club("1")))
+            let stopped = await router.open(.club("1"))
+            XCTAssertEqual(stopped, .failed(.stopped))
+        }
+
         func testOpenPassesExtrasAnimationAndWeakOriginToHandler() async throws {
             let probe = OpenProbe()
             let host = LYSingleStackHost(root: UIViewController())
@@ -391,6 +446,27 @@
             }
             builder.page(.settings, policy: .init(status: .disabled)) { _, _ in
                 XCTFail("禁用路由应走兜底")
+            }
+            builder.page(.wallet, policy: .init(status: .placeholder)) { _, _ in
+                XCTFail("占位路由应走兜底")
+            }
+        }
+    }
+
+    /// `default` 使用请求动画，`override` 显式传入 `animated: true`。
+    private struct ReplaceModule: LYRouteModule {
+        static let moduleID = "replace"
+
+        init(environment: LYRouteEnvironment) {}
+
+        func register(into builder: inout LYStackRouteRegistry<AppRoute>.Builder) {
+            builder.page(.club) { route, context in
+                guard case let .club(id) = route else { return }
+                if id == "override" {
+                    context.replaceStack([UIViewController()], animated: true)
+                } else {
+                    context.replaceStack([UIViewController()])
+                }
             }
         }
     }

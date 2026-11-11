@@ -10,8 +10,9 @@
 		0A561235A45CE0EC2C506048 /* DemoHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10A1D853E5D49B2261683B2D /* DemoHost.swift */; };
 		27432A8D45CFBCC059E9F796 /* ModalNavigationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B839A155A87C8F2B82DF45D1 /* ModalNavigationTests.swift */; };
 		323E7C713F1C0DBE3E6643CB /* MeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F385B5775890BBD435AAF50C /* MeViewController.swift */; };
+		357B7A08454E25E0971001D9 /* WindowContextHostedTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8515A2E054DCAB538A4B80F8 /* WindowContextHostedTests.swift */; };
 		35FF2556057CE3B3368E75E0 /* DemoMessagingFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 7F517E4965FA713F5EB1ABC0 /* DemoMessagingFeature */; };
-		4BEB06F39F413E5ED25DAF2B /* EngineFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D311CBFEFDD4E21FE8952F /* EngineFixtures.swift */; };
+		36E414291A1BBCD172452A96 /* EngineFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 818AFC598FF4AFB5E82F866F /* EngineFixtures.swift */; };
 		4FC4A011A9A8305B1CE7028A /* DemoRouteContract in Frameworks */ = {isa = PBXBuildFile; productRef = 6868F5DB32617ECF1CD46644 /* DemoRouteContract */; };
 		5854D499206312C662EC9E0E /* HostedTransitionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55125923E4A2A95F8CB6BF69 /* HostedTransitionTests.swift */; };
 		6AE11A0D08B1D5B92D400CC7 /* AccountRouteModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36B2FBBB42DF417B2CD9E879 /* AccountRouteModule.swift */; };
@@ -50,11 +51,13 @@
 		111ADCF53CCBB4C86A520979 /* DemoCommunityFeature */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DemoCommunityFeature; path = Packages/DemoCommunityFeature; sourceTree = SOURCE_ROOT; };
 		31FE8192B580EF8F352E8B29 /* DemoRouteContract */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DemoRouteContract; path = Packages/DemoRouteContract; sourceTree = SOURCE_ROOT; };
 		36B2FBBB42DF417B2CD9E879 /* AccountRouteModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountRouteModule.swift; sourceTree = "<group>"; };
-		3D1D2F2A9292E5F1F1BEED88 /* 0.2.0 */ = {isa = PBXFileReference; lastKnownFileType = folder; name = 0.2.0; path = ..; sourceTree = SOURCE_ROOT; };
 		55125923E4A2A95F8CB6BF69 /* HostedTransitionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostedTransitionTests.swift; sourceTree = "<group>"; };
 		56934BA072F8E3F34279739B /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		68E832CFB7277084362CDF0C /* LYStackRouter */ = {isa = PBXFileReference; lastKnownFileType = folder; name = LYStackRouter; path = ..; sourceTree = SOURCE_ROOT; };
 		7597FC7C260117BAB608D513 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		818AFC598FF4AFB5E82F866F /* EngineFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineFixtures.swift; sourceTree = "<group>"; };
 		85072EBF6670374768909709 /* HomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewController.swift; sourceTree = "<group>"; };
+		8515A2E054DCAB538A4B80F8 /* WindowContextHostedTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowContextHostedTests.swift; sourceTree = "<group>"; };
 		8F0984821CF3BC6F1508C52C /* DemoAssembly.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoAssembly.swift; sourceTree = "<group>"; };
 		9B0B182950D2508161E83FD8 /* NestedContainerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NestedContainerTests.swift; sourceTree = "<group>"; };
 		9B8B321C3E9976BE554CA613 /* LYStackRouterExamplesTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LYStackRouterExamplesTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -64,7 +67,6 @@
 		B839A155A87C8F2B82DF45D1 /* ModalNavigationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModalNavigationTests.swift; sourceTree = "<group>"; };
 		EB3BC1388D497AFDB48D6680 /* DemoUIKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DemoUIKit; path = Packages/DemoUIKit; sourceTree = SOURCE_ROOT; };
 		F385B5775890BBD435AAF50C /* MeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeViewController.swift; sourceTree = "<group>"; };
-		F3D311CBFEFDD4E21FE8952F /* EngineFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineFixtures.swift; sourceTree = "<group>"; };
 		F565AFC36AFA6955EDABA82F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -103,11 +105,11 @@
 		1177E506257D166645B64544 /* Packages */ = {
 			isa = PBXGroup;
 			children = (
-				3D1D2F2A9292E5F1F1BEED88 /* 0.2.0 */,
 				111ADCF53CCBB4C86A520979 /* DemoCommunityFeature */,
 				ACFB47EC7A618786AA38CF27 /* DemoMessagingFeature */,
 				31FE8192B580EF8F352E8B29 /* DemoRouteContract */,
 				EB3BC1388D497AFDB48D6680 /* DemoUIKit */,
+				68E832CFB7277084362CDF0C /* LYStackRouter */,
 			);
 			path = Packages;
 			sourceTree = "<group>";
@@ -120,6 +122,15 @@
 			path = Hosting;
 			sourceTree = "<group>";
 		};
+		57C9923DD74C39816757D35D /* LYStackRouter */ = {
+			isa = PBXGroup;
+			children = (
+				8A5BEBE481767FF7BDE7390A /* Tests */,
+			);
+			name = LYStackRouter;
+			path = ..;
+			sourceTree = "<group>";
+		};
 		6D28CA827EB11744E59003E3 /* LYStackRouterExamples */ = {
 			isa = PBXGroup;
 			children = (
@@ -130,15 +141,6 @@
 				8A2CDB7C4E517635E11DCD08 /* Pages */,
 			);
 			path = LYStackRouterExamples;
-			sourceTree = "<group>";
-		};
-		80A0BC880F145018527F1B31 /* 0.2.0 */ = {
-			isa = PBXGroup;
-			children = (
-				D2E8773ADCB521E4A3A129B4 /* Tests */,
-			);
-			name = 0.2.0;
-			path = ..;
 			sourceTree = "<group>";
 		};
 		8214100B4CAEF3683CB1B3E8 /* Products */ = {
@@ -160,6 +162,14 @@
 			path = Pages;
 			sourceTree = "<group>";
 		};
+		8A5BEBE481767FF7BDE7390A /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				AB8B9640B7CE72CBB8F99863 /* LYStackRouterTests */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
 		988CAA47553B22F33877C388 /* Account */ = {
 			isa = PBXGroup;
 			children = (
@@ -171,7 +181,7 @@
 		A3D138CBD84A143B9600CE33 = {
 			isa = PBXGroup;
 			children = (
-				80A0BC880F145018527F1B31 /* 0.2.0 */,
+				57C9923DD74C39816757D35D /* LYStackRouter */,
 				6D28CA827EB11744E59003E3 /* LYStackRouterExamples */,
 				B35ECA362966D59F95D959B0 /* LYStackRouterExamplesTests */,
 				0CC941EE08A84F1921F5516A /* LYStackRouterExamplesUITests */,
@@ -180,30 +190,23 @@
 			);
 			sourceTree = "<group>";
 		};
+		AB8B9640B7CE72CBB8F99863 /* LYStackRouterTests */ = {
+			isa = PBXGroup;
+			children = (
+				818AFC598FF4AFB5E82F866F /* EngineFixtures.swift */,
+			);
+			path = LYStackRouterTests;
+			sourceTree = "<group>";
+		};
 		B35ECA362966D59F95D959B0 /* LYStackRouterExamplesTests */ = {
 			isa = PBXGroup;
 			children = (
 				55125923E4A2A95F8CB6BF69 /* HostedTransitionTests.swift */,
 				B839A155A87C8F2B82DF45D1 /* ModalNavigationTests.swift */,
 				9B0B182950D2508161E83FD8 /* NestedContainerTests.swift */,
+				8515A2E054DCAB538A4B80F8 /* WindowContextHostedTests.swift */,
 			);
 			path = LYStackRouterExamplesTests;
-			sourceTree = "<group>";
-		};
-		D2E8773ADCB521E4A3A129B4 /* Tests */ = {
-			isa = PBXGroup;
-			children = (
-				DB9CC383B5C45FA6F950E905 /* LYStackRouterTests */,
-			);
-			path = Tests;
-			sourceTree = "<group>";
-		};
-		DB9CC383B5C45FA6F950E905 /* LYStackRouterTests */ = {
-			isa = PBXGroup;
-			children = (
-				F3D311CBFEFDD4E21FE8952F /* EngineFixtures.swift */,
-			);
-			path = LYStackRouterTests;
 			sourceTree = "<group>";
 		};
 		E423566D97444D627BED708B /* App */ = {
@@ -356,10 +359,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4BEB06F39F413E5ED25DAF2B /* EngineFixtures.swift in Sources */,
+				36E414291A1BBCD172452A96 /* EngineFixtures.swift in Sources */,
 				5854D499206312C662EC9E0E /* HostedTransitionTests.swift in Sources */,
 				27432A8D45CFBCC059E9F796 /* ModalNavigationTests.swift in Sources */,
 				B1ADA01B8A0718E97994744B /* NestedContainerTests.swift in Sources */,
+				357B7A08454E25E0971001D9 /* WindowContextHostedTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

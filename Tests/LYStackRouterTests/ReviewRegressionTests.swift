@@ -292,6 +292,16 @@
             XCTAssertEqual(host.navigationController.viewControllers.count, 1)
         }
 
+        // MARK: - Presentation
+
+        /// 系统导航控制器（以相册为例）不被 `present` 自动接管；普通导航栈与业务子类照常接管。
+        /// `UIVideoEditorController` 在测试宿主中无法直接构造，规则与相册相同。
+        func testSystemNavigationControllersAreExcludedFromAdoption() {
+            XCTAssertTrue(LYStackRouter<ReviewRoute>.isSystemNavigation(UIImagePickerController()))
+            XCTAssertFalse(LYStackRouter<ReviewRoute>.isSystemNavigation(UINavigationController()))
+            XCTAssertFalse(LYStackRouter<ReviewRoute>.isSystemNavigation(BusinessNavigationController()))
+        }
+
         // MARK: - Context
 
         /// `revealExisting` 切换目标栈后，上下文返回本次执行的实时目标栈。
@@ -362,6 +372,9 @@
     final class ReviewProbe {
         weak var navigation: UINavigationController?
     }
+
+    /// 业务自定义的导航栈子类，应当照常被接管。
+    final class BusinessNavigationController: UINavigationController {}
 
     /// `revealExisting` 查找的目标页面。
     final class RevealTarget: UIViewController {}

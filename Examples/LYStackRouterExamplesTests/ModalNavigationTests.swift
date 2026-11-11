@@ -8,15 +8,18 @@ final class ModalNavigationTests: XCTestCase {
     private var gate: Gate!
     private var host: LYTabBarHost!
     private var router: LYStackRouter<AppRoute>!
+    private var observer: RecordingObserver!
     private var window: UIWindow!
 
     override func setUp() async throws {
         gate = Gate()
         host = makeTabHost()
+        observer = RecordingObserver()
         router = try LYStackRouter<AppRoute>.build(
             host: host,
             modules: .explicit([CommunityModule.self, ChatModule.self]),
-            environment: makeEnvironment(gate: gate)
+            environment: makeEnvironment(gate: gate),
+            observers: [observer]
         )
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         window = UIWindow(windowScene: scene)
@@ -372,6 +375,40 @@ final class ModalNavigationTests: XCTestCase {
         XCTAssertEqual(host.allNavigationControllers[0].viewControllers.count, 1)
     }
 
+    /// 模态来源只能在本栈内导航：其他目标域对用户请求忽略、对外部请求等待；模态关闭后来源失效，等待请求被丢弃。
+    func testModalOriginCannotOpenOtherPlacement() async throws {
+        let modal = await presentModal()
+        let root = try XCTUnwrap(modal.topViewController)
+        let me = host.allNavigationControllers[2]
+
+        XCTAssertEqual(router.request(.settings, options: .init(animated: false, from: root)), .ignored)
+        let deferred = await router.open(.settings, source: .push, options: .init(animated: false, from: root))
+        XCTAssertEqual(deferred, .deferred)
+        XCTAssertEqual(host.tabBarController.selectedIndex, 0)
+
+        await dismiss(modal)
+        await waitUntil { self.router.pending == nil }
+        XCTAssertEqual(observer.dropped, [.originUnavailable])
+        XCTAssertEqual(me.viewControllers.count, 1)
+        XCTAssertEqual(host.tabBarController.selectedIndex, 0)
+    }
+
+    /// 模态显示时，不带来源的请求与 0.1.1 一致：用户请求忽略，外部请求等待模态关闭后在主栈执行。
+    func testRequestWithoutOriginKeepsBlockingBehaviorWhileModalIsShown() async {
+        let modal = await presentModal()
+        let home = host.allNavigationControllers[0]
+
+        XCTAssertEqual(router.request(.club("user")), .ignored)
+        let deferred = await router.open(.club("external"), source: .push)
+        XCTAssertEqual(deferred, .deferred)
+        XCTAssertEqual(modal.viewControllers.count, 1)
+
+        await dismiss(modal)
+        await waitUntil { home.viewControllers.count == 2 && !self.router.isNavigating }
+        XCTAssertEqual((home.topViewController as? TestPage)?.identity, .club("external"))
+        XCTAssertTrue(observer.dropped.isEmpty)
+    }
+
     /// 业务自行展示、尚未被接管的模态中，返回与客户端关闭使用同样的准入。
     func testBackWorksInsideUnadoptedModal() async throws {
         let modal = await presentModal()
@@ -395,8 +432,9 @@ final class ModalNavigationTests: XCTestCase {
         _ = router.performUserNavigation(route: .club("picker"), source: .user) { context in
             context.present(picker, animated: false)
         }
-        await waitUntil { picker.viewIfLoaded?.window != nil && picker.transitionCoordinator == nil }
-        try? await Task.sleep(nanoseconds: 100_000_000)
+        // 相册界面的真实上屏时间不稳定，只等展示关系建立；排除规则本身由包内单元测试确定性覆盖。
+        await waitUntil { picker.presentingViewController != nil }
+        try? await Task.sleep(nanoseconds: 300_000_000)
         XCTAssertTrue(picker.delegate === business)
         XCTAssertNil(router.managedNavigations[ObjectIdentifier(picker)])
         await dismiss(picker)
