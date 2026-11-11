@@ -31,6 +31,8 @@
         var knownSessionID: String?
         let allowsUnregistered: Bool
         var generation = UUID()
+        /// 会话代次：只在重置会话、切换或解绑宿主、停止时更换。登录（nil → 会话）保留，客户端据此判断是否失效。
+        var sessionEpoch = UUID()
         var currentExecution: NavigationExecution?
         var managedNavigations: [ObjectIdentifier: NavigationEventBridge] = [:]
         var stopped = false
@@ -169,6 +171,7 @@
         /// 解绑宿主。只有当前绑定的宿主才能解绑，旧宿主迟到的解绑不影响新宿主。
         public func detach(_ host: any LYRouterHost) {
             guard self.host === host else { return }
+            sessionEpoch = UUID()
             invalidateExecution()
             (host as? LYNavigationEventSource)?.onNavigationDidShow = nil
             self.host = nil
@@ -176,8 +179,9 @@
 
         /// 宿主会话变化后调用。
         ///
-        /// - 从无会话变为有会话（登录）：保留等待中的外部请求并绑定到新会话，随后尝试执行。
-        /// - 从一个会话变为另一个会话，或退出登录：等同 `resetSession()`，清空等待请求。
+        /// - 从无会话变为有会话（登录）：保留等待中的外部请求并绑定到新会话，随后尝试执行；
+        ///   已创建的 `LYRouteClient` 与已接管的模态导航栈继续有效。
+        /// - 从一个会话变为另一个会话，或退出登录：等同 `resetSession()`，清空等待请求，旧客户端失效。
         /// 两种情况都会使进行中的导航作废。
         public func sessionDidChange() {
             let current = host?.routerSessionID
@@ -186,7 +190,7 @@
             knownSessionID = current
             if previous == nil, let current {
                 if pending?.sessionID == nil { pending?.sessionID = current }
-                invalidateExecution()
+                invalidateExecution(preservingModalNavigations: true)
                 navigationDidStabilize()
             } else {
                 resetSession()
@@ -197,6 +201,7 @@
         public func resetSession() {
             pending = nil
             knownSessionID = host?.routerSessionID
+            sessionEpoch = UUID()
             invalidateExecution()
         }
 

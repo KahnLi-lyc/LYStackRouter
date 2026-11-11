@@ -25,7 +25,9 @@
             return activeNavigation
         }
 
+        /// 没有显式来源时沿用宿主当前域的准入，与活跃栈是否存在无关（选中 Tab 可以不是导航栈）。
         func canNavigate(to placement: LYRoutePlacement, options: LYOpenOptions) -> Bool {
+            guard options.hasExplicitOrigin else { return canNavigate(to: placement) }
             guard !stopped, currentExecution == nil, let host, host.isRouterReady else { return false }
             guard let navigation = navigation(for: options) else { return false }
             if options.hasExplicitOrigin, !isValidOrigin(options.from) { return false }

@@ -368,6 +368,27 @@ final class ModalNavigationTests: XCTestCase {
         XCTAssertEqual(host.allNavigationControllers[0].viewControllers.count, 1)
     }
 
+    /// 模态内的登录流程：登录（nil → 会话）后仍由路由器接管该栈，返回与客户端关闭照常生效。
+    func testLoginKeepsManagedModalBackAndDismiss() async throws {
+        let modal = await presentModal()
+        let root = try XCTUnwrap(modal.topViewController as? TestPage)
+        _ = await router.open(.club("x"), options: .init(animated: false, from: root))
+        let club = try XCTUnwrap(modal.topViewController as? TestPage)
+        _ = await router.open(.profile("p"), options: .init(animated: false, from: club))
+        let profile = try XCTUnwrap(modal.topViewController as? TestPage)
+        let client = router.makeClient(from: club)
+
+        host.sessionID = "signed-in"
+        router.sessionDidChange()
+
+        XCTAssertNotNil(router.managedNavigations[ObjectIdentifier(modal)])
+        router.navigateBack(from: profile, in: modal)
+        await waitUntil { modal.topViewController === club && !self.router.isNavigating && modal.transitionCoordinator == nil }
+        let popped = await client.dismiss(animated: false)
+        XCTAssertEqual(popped, .reused)
+        XCTAssertTrue(modal.topViewController === root)
+    }
+
     private func presentModal(delegate: ModalDelegate? = nil) async -> UINavigationController {
         let navigation = UINavigationController(rootViewController: TestPage(nil, title: "modal root"))
         navigation.modalPresentationStyle = .fullScreen

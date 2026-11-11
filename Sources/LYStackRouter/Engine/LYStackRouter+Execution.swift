@@ -84,15 +84,20 @@
         }
 
         /// 使当前代次失效：终止执行、清理挂起的移出页面、唤醒全部转场等待。
-        func invalidateExecution() {
+        ///
+        /// 登录时传入 `preservingModalNavigations: true`：同一宿主上仍在展示的模态栈继续由路由器接管，
+        /// 返回、关闭与准备期抢占不受影响；其余场景同时拆除全部模态事件桥。
+        func invalidateExecution(preservingModalNavigations: Bool = false) {
             terminateExecution()
             generation = UUID()
             // UIKit 可能省略最终回调，先移出登记并释放强快照；迟到回调仍可通过弱引用核对存活页面。
             let removals = Array(transitionRemovals.values)
             transitionRemovals.removeAll()
             removals.forEach { $0.invalidate() }
-            managedNavigations.values.forEach { $0.detach() }
-            managedNavigations.removeAll()
+            if !preservingModalNavigations {
+                managedNavigations.values.forEach { $0.detach() }
+                managedNavigations.removeAll()
+            }
             let waiters = transitionWaiters.values
             transitionWaiters.removeAll()
             waiters.forEach { $0.resume() }

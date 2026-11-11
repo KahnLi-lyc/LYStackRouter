@@ -38,9 +38,12 @@
     }
 
     extension LYStackRouter {
-        /// 创建绑定当前代次的客户端；绑定页面时仅保留弱引用，旧客户端不会跨账号继续导航。
+        /// 创建绑定当前会话代次的客户端；绑定页面时仅保留弱引用。
+        ///
+        /// 登录（nil → 会话）后客户端继续可用；切换账号、退出登录、`resetSession()`、更换宿主或停止路由器后，
+        /// 旧客户端一律返回 `.failed(.contextChanged)`，不会跨账号继续导航。
         public func makeClient(from page: UIViewController? = nil) -> LYRouteClient<Route> {
-            let scope = RouteClientScope(page: page, sessionID: host?.routerSessionID, generation: generation)
+            let scope = RouteClientScope(page: page, sessionEpoch: sessionEpoch)
             return LYRouteClient(open: { [weak self] route, options in
                 guard let self, isClientScopeValid(scope) else { return .failed(.contextChanged) }
                 return await open(route, options: scopedOptions(options, scope: scope))
@@ -54,7 +57,7 @@
         }
 
         private func isClientScopeValid(_ scope: RouteClientScope) -> Bool {
-            !Task.isCancelled && isCurrent(scope.generation) && scope.sessionID == host?.routerSessionID
+            !Task.isCancelled && !stopped && host != nil && scope.sessionEpoch == sessionEpoch
                 && (!scope.hasPage || isValidOrigin(scope.page))
         }
 
@@ -98,19 +101,17 @@
         }
     }
 
-    /// 将弱来源与创建代次封装在主线程对象中，客户端本身可安全注入并发业务代码。
+    /// 将弱来源与创建时的会话代次封装在主线程对象中，客户端本身可安全注入并发业务代码。
     @MainActor
     private final class RouteClientScope {
         weak var page: UIViewController?
         let hasPage: Bool
-        let sessionID: String?
-        let generation: UUID
+        let sessionEpoch: UUID
 
-        init(page: UIViewController?, sessionID: String?, generation: UUID) {
+        init(page: UIViewController?, sessionEpoch: UUID) {
             self.page = page
             hasPage = page != nil
-            self.sessionID = sessionID
-            self.generation = generation
+            self.sessionEpoch = sessionEpoch
         }
     }
 #endif
