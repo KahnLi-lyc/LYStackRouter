@@ -109,8 +109,8 @@ final class ModalNavigationTests: XCTestCase {
         await dismiss(modal)
         await waitUntil { finished != nil && self.router.managedNavigations.isEmpty }
         XCTAssertEqual(finished, .failed(.contextChanged))
-        XCTAssertEqual(root.removedCount, 1)
-        XCTAssertEqual(source.removedCount, 1)
+        XCTAssertEqual(root.removedCount, 0, "业务自行关闭不属于路由清理")
+        XCTAssertEqual(source.removedCount, 0)
         gate.open()
         await opening.value
         XCTAssertEqual(modal.viewControllers.count, 2)
@@ -184,8 +184,8 @@ final class ModalNavigationTests: XCTestCase {
         XCTAssertEqual(result, .created)
         await dismiss(modal)
         await waitUntil { self.router.managedNavigations.isEmpty }
-        XCTAssertEqual(root.removedCount, 1)
-        XCTAssertEqual(source.removedCount, 1)
+        XCTAssertEqual(root.removedCount, 0, "业务自行关闭不属于路由清理")
+        XCTAssertEqual(source.removedCount, 0)
     }
 
     func testDismissalPreservesBusinessDelegateInstalledAfterAdoption() async throws {
@@ -200,7 +200,7 @@ final class ModalNavigationTests: XCTestCase {
         XCTAssertTrue(modal.delegate === replacement)
     }
 
-    func testDelayedDismissalObservationCleansPagesAfterNavigationIsReleased() async throws {
+    func testDelayedDismissalObservationReleasesBridgeWithoutCleaningBusinessDismissal() async throws {
         var modal: UINavigationController? = await presentModal()
         let root = try XCTUnwrap(modal?.topViewController as? TestPage)
         _ = await router.open(.club("retained"), options: .init(animated: false, from: root))
@@ -219,11 +219,11 @@ final class ModalNavigationTests: XCTestCase {
 
         deliverRemoval()
         await waitUntil { self.router.managedNavigations.isEmpty }
-        XCTAssertEqual(root.removedCount, 1)
-        XCTAssertEqual(page.removedCount, 1)
+        XCTAssertEqual(root.removedCount, 0)
+        XCTAssertEqual(page.removedCount, 0)
         deliverRemoval()
-        XCTAssertEqual(root.removedCount, 1)
-        XCTAssertEqual(page.removedCount, 1)
+        XCTAssertEqual(root.removedCount, 0)
+        XCTAssertEqual(page.removedCount, 0)
     }
 
     func testDelayedDismissalObservationTerminatesReleasedTargetPreparation() async throws {
@@ -250,7 +250,7 @@ final class ModalNavigationTests: XCTestCase {
         await waitUntil { finished != nil }
         XCTAssertEqual(finished, .failed(.contextChanged))
         XCTAssertTrue(router.managedNavigations.isEmpty)
-        XCTAssertEqual(source.removedCount, 1)
+        XCTAssertEqual(source.removedCount, 0)
         gate.open()
         await opening.value
         XCTAssertEqual(host.allNavigationControllers[0].viewControllers.count, 1)
@@ -274,7 +274,7 @@ final class ModalNavigationTests: XCTestCase {
 
         deliverRemoval()
         XCTAssertTrue(router.managedNavigations.isEmpty)
-        XCTAssertEqual(root.removedCount, 1)
+        XCTAssertEqual(root.removedCount, 0)
         XCTAssertEqual(page.removedCount, 0)
         XCTAssertTrue(home.topViewController === page)
     }
@@ -303,9 +303,10 @@ final class ModalNavigationTests: XCTestCase {
         XCTAssertTrue(homeContext?.navigationController === home)
     }
 
-    func testAnimatedModalDismissalKeepsExecutionUntilCompletion() async {
+    func testAnimatedModalDismissalKeepsExecutionUntilCompletion() async throws {
         let modal = await presentModal()
-        let client = router.makeClient(from: modal.topViewController)
+        let root = try XCTUnwrap(modal.topViewController as? TestPage)
+        let client = router.makeClient(from: root)
         let closing = Task { await client.dismiss(animated: true) }
         await waitUntil { self.router.currentExecution?.isDismissing == true }
         XCTAssertTrue(router.isNavigating)
@@ -314,6 +315,9 @@ final class ModalNavigationTests: XCTestCase {
         XCTAssertEqual(result, .performed)
         XCTAssertFalse(router.isNavigating)
         XCTAssertEqual(host.allNavigationControllers[0].viewControllers.count, 1)
+        await waitUntil { root.removedCount == 1 }
+        router.navigationDidStabilize()
+        XCTAssertEqual(root.removedCount, 1, "路由器关闭的模态只清理一次")
     }
 
     func testCoveredModalPreparationDefersThenRunsAfterCoverDismissal() async throws {
@@ -368,6 +372,43 @@ final class ModalNavigationTests: XCTestCase {
         XCTAssertEqual(host.allNavigationControllers[0].viewControllers.count, 1)
     }
 
+    /// 业务自行展示、尚未被接管的模态中，返回与客户端关闭使用同样的准入。
+    func testBackWorksInsideUnadoptedModal() async throws {
+        let modal = await presentModal()
+        let root = try XCTUnwrap(modal.topViewController)
+        let pushed = TestPage(.profile("business"))
+        modal.pushViewController(pushed, animated: false)
+        XCTAssertNil(router.managedNavigations[ObjectIdentifier(modal)])
+
+        await waitUntil { pushed.viewIfLoaded?.window != nil && modal.transitionCoordinator == nil }
+        router.navigateBack(from: pushed, in: modal)
+        await waitUntil { modal.topViewController === root && !self.router.isNavigating }
+        XCTAssertEqual(pushed.removedCount, 1)
+    }
+
+    /// `present` 只自动接管普通导航栈；系统导航控制器（相册、邮件等）保留业务代理。
+    func testPresentDoesNotAdoptSystemNavigationControllers() async {
+        let business = PickerDelegate()
+        let picker = UIImagePickerController()
+        picker.delegate = business
+        picker.modalPresentationStyle = .fullScreen
+        _ = router.performUserNavigation(route: .club("picker"), source: .user) { context in
+            context.present(picker, animated: false)
+        }
+        await waitUntil { picker.viewIfLoaded?.window != nil && picker.transitionCoordinator == nil }
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        XCTAssertTrue(picker.delegate === business)
+        XCTAssertNil(router.managedNavigations[ObjectIdentifier(picker)])
+        await dismiss(picker)
+
+        let flow = UINavigationController(rootViewController: TestPage(nil))
+        flow.modalPresentationStyle = .fullScreen
+        _ = router.performUserNavigation(route: .club("flow"), source: .user) { context in
+            context.present(flow, animated: false)
+        }
+        await waitUntil { self.router.managedNavigations[ObjectIdentifier(flow)] != nil }
+    }
+
     /// 模态内的登录流程：登录（nil → 会话）后仍由路由器接管该栈，返回与客户端关闭照常生效。
     func testLoginKeepsManagedModalBackAndDismiss() async throws {
         let modal = await presentModal()
@@ -414,6 +455,9 @@ final class ModalNavigationTests: XCTestCase {
         XCTAssertTrue(condition(), "等待条件超时")
     }
 }
+
+@MainActor
+private final class PickerDelegate: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {}
 
 @MainActor
 private final class ModalDelegate: NSObject, UINavigationControllerDelegate {

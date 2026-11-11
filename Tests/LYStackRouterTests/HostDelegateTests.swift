@@ -22,6 +22,43 @@
             withExtendedLifetime(router) {}
         }
 
+        /// 导航代理的可选方法转给 `forwardingDelegate`，Tab 代理的可选方法转给 `forwardingTabDelegate`，互不串用。
+        func testTabHostForwardsOptionalMethodsByProtocol() {
+            let tabs = UITabBarController()
+            let host = LYTabBarHost(tabBarController: tabs, placements: [:])
+            let navigationDelegate = NavigationOnlyDelegate()
+            let tabDelegate = TabOnlyDelegate()
+            host.forwardingDelegate = navigationDelegate
+            host.forwardingTabDelegate = tabDelegate
+            let animation = #selector(UINavigationControllerDelegate.navigationController(_:animationControllerFor:from:to:))
+            let shouldSelect = #selector(UITabBarControllerDelegate.tabBarController(_:shouldSelect:))
+
+            XCTAssertTrue(host.responds(to: animation))
+            XCTAssertTrue(host.forwardingTarget(for: animation) as AnyObject? === navigationDelegate)
+            XCTAssertTrue(host.responds(to: shouldSelect))
+            XCTAssertTrue(host.forwardingTarget(for: shouldSelect) as AnyObject? === tabDelegate)
+            host.forwardingTabDelegate = nil
+            XCTAssertFalse(host.responds(to: shouldSelect), "Tab 方法不能转给导航代理")
+        }
+
+        /// 业务在创建宿主后改了 TabBar 代理，`attach` 时宿主重新接管并把它记为转发对象。
+        func testAttachReinstallsTabDelegate() throws {
+            let tabs = UITabBarController()
+            tabs.viewControllers = makeStacks()
+            let host = LYTabBarHost(tabBarController: tabs, placements: [:])
+            let business = TabOnlyDelegate()
+            tabs.delegate = business
+            let router = try LYStackRouter<AppRoute>.build(
+                host: host,
+                modules: .explicit([CommunityModule.self]),
+                environment: makeEnvironment(),
+                allowsUnregistered: true
+            )
+            XCTAssertTrue(tabs.delegate === host)
+            XCTAssertTrue(host.forwardingTabDelegate === business)
+            withExtendedLifetime(router) {}
+        }
+
         func testTabsAssignedBeforeHostCreationKeepDelegate() throws {
             let tabs = UITabBarController()
             tabs.viewControllers = makeStacks()
@@ -53,6 +90,23 @@
 
         private func makeStacks() -> [UINavigationController] {
             (0 ..< 3).map { _ in UINavigationController(rootViewController: TestPage(nil)) }
+        }
+    }
+
+    /// 只实现导航动画方法的业务代理。
+    @MainActor
+    private final class NavigationOnlyDelegate: NSObject, UINavigationControllerDelegate {
+        func navigationController(_ navigationController: UINavigationController, animationControllerFor operation: UINavigationController.Operation,
+                                  from fromVC: UIViewController, to toVC: UIViewController) -> (any UIViewControllerAnimatedTransitioning)? {
+            nil
+        }
+    }
+
+    /// 只实现 Tab 选择方法的业务代理。
+    @MainActor
+    private final class TabOnlyDelegate: NSObject, UITabBarControllerDelegate {
+        func tabBarController(_ tabBarController: UITabBarController, shouldSelect viewController: UIViewController) -> Bool {
+            true
         }
     }
 #endif

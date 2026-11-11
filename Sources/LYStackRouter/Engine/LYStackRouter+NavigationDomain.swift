@@ -88,8 +88,9 @@
         }
 
         /// 首次使用模态栈时接入代理与关闭观察；宿主解绑时由统一失效流程拆除。
+        /// 系统导航控制器（相册、视频编辑、邮件、短信）的代理承担业务回调，不接管。
         func adoptModalNavigation(_ navigation: UINavigationController) {
-            guard isModalNavigation(navigation) else { return }
+            guard isModalNavigation(navigation), !Self.isSystemNavigation(navigation) else { return }
             let identity = ObjectIdentifier(navigation)
             if let existing = managedNavigations[identity], navigation.delegate === existing { return }
             managedNavigations.removeValue(forKey: identity)?.detach()
@@ -98,6 +99,14 @@
             }
             managedNavigations[identity] = bridge
             observeModalRemoval(navigation, bridge: bridge)
+        }
+
+        /// MessageUI 的类按名称查找，库不因此链接 MessageUI。
+        static func isSystemNavigation(_ navigation: UINavigationController) -> Bool {
+            if navigation is UIImagePickerController || navigation is UIVideoEditorController { return true }
+            return ["MFMailComposeViewController", "MFMessageComposeViewController"]
+                .compactMap(NSClassFromString)
+                .contains { navigation.isKind(of: $0) }
         }
 
         private func topPresentedNavigation() -> UINavigationController? {
@@ -139,21 +148,13 @@
                     observeModalRemoval(navigation, bridge: bridge)
                     return
                 }
-                let pages = bridge.currentPages
+                // 只结束执行权与事件桥；页面清理只属于路由器发起的关闭（见 `dismissClient`），
+                // 与主栈“系统返回不算路由清理”一致。
                 managedNavigations.removeValue(forKey: identity)
                 bridge.detach()
                 if let execution = currentExecution, execution.isModal,
                    execution.targetNavigationID == identity, !execution.isDismissing {
                     terminateExecution()
-                }
-                for page in pages {
-                    if let navigation {
-                        guard page.parent === navigation else { continue }
-                    } else {
-                        // 页面可能被业务重新挂载，只有仍然脱离展示树的存活页面才属于本次退出。
-                        guard page.parent == nil, page.presentingViewController == nil, page.viewIfLoaded?.window == nil else { continue }
-                    }
-                    host?.tearDown(page)
                 }
                 navigationDidStabilize()
             }

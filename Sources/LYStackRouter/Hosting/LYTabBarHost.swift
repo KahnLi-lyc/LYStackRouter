@@ -16,15 +16,19 @@
         public var isReady = true
         /// 业务自己的导航代理，宿主会转发 `willShow` 与 `didShow`。
         public weak var forwardingDelegate: (any UINavigationControllerDelegate)?
-        /// 原有 Tab 代理；未实现的系统回调继续转交它。
+        /// 业务自己的 Tab 代理。宿主创建或 `attach` 时，TabBar 上已有的代理会记录到这里；
+        /// 宿主只实现 `didSelect`，其余 `UITabBarControllerDelegate` 可选方法转交给它。
         public weak var forwardingTabDelegate: (any UITabBarControllerDelegate)?
-        /// 由路由器在 `attach` 时设置；设置时宿主会成为当前全部导航栈的代理。
+        /// 由路由器在 `attach` 时设置；设置时宿主会成为当前全部导航栈与 TabBar 的代理。
         ///
-        /// 宿主创建后才放入 TabBar 的导航栈，会在 `attach` 时补装代理；之后若再更换 `viewControllers`，
+        /// 宿主创建后才放入 TabBar 的导航栈或才设置的 Tab 代理，会在 `attach` 时补装；之后若再更换，
         /// 请重新调用 `router.attach(host)`。
         public var onNavigationDidShow: ((UINavigationController) -> Void)? {
             didSet {
-                if onNavigationDidShow != nil { installDelegates() }
+                if onNavigationDidShow != nil {
+                    installTabDelegate()
+                    installDelegates()
+                }
             }
         }
 
@@ -35,27 +39,34 @@
             self.tabBarController = tabBarController
             self.placements = placements
             super.init()
-            forwardingTabDelegate = tabBarController.delegate
-            tabBarController.delegate = self
+            installTabDelegate()
             installDelegates()
         }
 
-        /// 用户选择 Tab 后立即核对准备任务的来源。
-        public func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
-            forwardingTabDelegate?.tabBarController?(tabBarController, didSelect: viewController)
-            if let navigation = viewController as? UINavigationController { onNavigationDidShow?(navigation) }
-        }
+        // MARK: - Delegate Forwarding
 
-        /// 转发业务 Tab 代理的可选方法。
+        /// 宿主未实现的代理可选方法按所属协议转交：Tab 方法给 `forwardingTabDelegate`，导航方法给 `forwardingDelegate`。
+        /// UIKit 只在主线程查询代理能力。
         override public nonisolated func responds(to selector: Selector!) -> Bool {
-            MainActor.assumeIsolated {
-                super.responds(to: selector) || forwardingTabDelegate?.responds(to: selector) == true
+            if super.responds(to: selector) { return true }
+            if Self.declares(UITabBarControllerDelegate.self, selector) {
+                return MainActor.assumeIsolated { forwardingTabDelegate?.responds(to: selector) == true }
             }
+            if Self.declares(UINavigationControllerDelegate.self, selector) {
+                return MainActor.assumeIsolated { forwardingDelegate?.responds(to: selector) == true }
+            }
+            return false
         }
 
-        /// 保留业务 Tab 代理的选择与自定义转场能力。
+        /// 保留业务代理的动画、交互与 Tab 选择能力。UIKit 只在主线程调用。
         override public nonisolated func forwardingTarget(for selector: Selector!) -> Any? {
-            MainActor.assumeIsolated { forwardingTabDelegate }
+            if Self.declares(UITabBarControllerDelegate.self, selector) {
+                return MainActor.assumeIsolated { forwardingTabDelegate }
+            }
+            if Self.declares(UINavigationControllerDelegate.self, selector) {
+                return MainActor.assumeIsolated { forwardingDelegate }
+            }
+            return nil
         }
 
         // MARK: - LYRouterHost
@@ -99,6 +110,14 @@
             tabBarController.selectedIndex = index
         }
 
+        // MARK: - UITabBarControllerDelegate
+
+        /// 用户选择 Tab 后立即核对准备任务的来源。
+        public func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
+            forwardingTabDelegate?.tabBarController?(tabBarController, didSelect: viewController)
+            if let navigation = viewController as? UINavigationController { onNavigationDidShow?(navigation) }
+        }
+
         // MARK: - UINavigationControllerDelegate
 
         public func navigationController(
@@ -119,6 +138,19 @@
         }
 
         // MARK: - Private
+
+        /// 成为 TabBar 的代理，并把原有业务代理记为转发对象。
+        private func installTabDelegate() {
+            guard tabBarController.delegate !== self else { return }
+            forwardingTabDelegate = tabBarController.delegate
+            tabBarController.delegate = self
+        }
+
+        /// 查询协议是否声明了该实例方法（必选或可选），用于决定转交对象。
+        private nonisolated static func declares(_ proto: Protocol, _ selector: Selector) -> Bool {
+            protocol_getMethodDescription(proto, selector, false, true).name != nil
+                || protocol_getMethodDescription(proto, selector, true, true).name != nil
+        }
 
         /// 成为全部导航栈的代理，才能把 UIKit 的 `didShow`（包括系统返回与侧滑）上报给路由器。
         private func installDelegates() {

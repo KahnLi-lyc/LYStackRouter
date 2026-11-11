@@ -88,7 +88,7 @@
             guard let routed = routedPage(for: page), routed.navigation === navigation else { return }
             let page = routed.page
             guard host?.isRouterReady == true, originNavigationIsCurrent(navigation), Self.isIdle(navigation),
-                  managedNavigations[ObjectIdentifier(navigation)] != nil || isNavigationContextReady,
+                  isModalNavigation(navigation) || isNavigationContextReady,
                   navigation.topViewController === page, page.parent != nil, navigation.viewControllers.count > 1,
                   currentExecution?.phase != .presenting else { return }
             terminateExecution()

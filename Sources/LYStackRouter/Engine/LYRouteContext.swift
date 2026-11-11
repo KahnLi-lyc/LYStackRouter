@@ -38,9 +38,9 @@
 
         // MARK: - Public
 
-        /// 创建本上下文时绑定的目标导航栈；以弱引用保留，结算后仍可查询。
+        /// 本次执行的目标导航栈，跟随 `revealExisting` 等对目标的切换；执行对象释放后返回创建时的目标。均为弱引用。
         public var navigationController: UINavigationController? {
-            targetNavigation
+            execution?.targetNavigation ?? targetNavigation
         }
 
         /// 展示页面：带身份时先在当前导航栈查找，已有就回到最近的实例，否则创建并 push。

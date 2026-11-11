@@ -85,6 +85,10 @@
             }
             guard navigation.presentingViewController != nil else { return .ignored }
             terminateExecution()
+            // 路由器发起的关闭负责清理整栈页面；登记快照，宿主失效时由统一流程释放。
+            let removalID = UUID()
+            let removal = StackRemoval(pages: navigation.viewControllers, owner: host)
+            transitionRemovals[removalID] = removal
             let submission = execute(kind: nil, source: .user, intent: nil, proposed: .performed,
                                      options: .init(animated: animated, from: page)) {
                 guard let execution = self.currentExecution else { return }
@@ -93,6 +97,8 @@
                 execution.preparationTask = Task { @MainActor [weak self, weak execution, weak navigation] in
                     guard let self, let execution, let navigation else { return }
                     await awaitUICompletion { completion in navigation.dismiss(animated: animated, completion: completion) }
+                    transitionRemovals.removeValue(forKey: removalID)
+                    removal.completeDismissal(of: navigation)
                     guard isCurrent(execution) else { return }
                     markResult(navigation.presentingViewController == nil ? .performed : .failed(.blocked))
                 }

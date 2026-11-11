@@ -292,6 +292,26 @@
             XCTAssertEqual(host.navigationController.viewControllers.count, 1)
         }
 
+        // MARK: - Context
+
+        /// `revealExisting` 切换目标栈后，上下文返回本次执行的实时目标栈。
+        func testContextNavigationFollowsRevealedStack() throws {
+            let first = UINavigationController(rootViewController: UIViewController())
+            let second = UINavigationController(rootViewController: RevealTarget())
+            let tabs = UITabBarController()
+            tabs.viewControllers = [first, second]
+            let host = LYTabBarHost(tabBarController: tabs, placements: [:])
+            let probe = ReviewProbe()
+            var environment = LYRouteEnvironment()
+            environment.provide(ReviewProbe.self, probe)
+            let router = try LYStackRouter<ReviewRoute>.build(host: host, modules: .explicit([ReviewModule.self]), environment: environment)
+            defer { router.tearDown() }
+
+            XCTAssertEqual(router.request(.reveal), .alreadyVisible)
+            XCTAssertTrue(probe.navigation === second)
+            XCTAssertEqual(tabs.selectedIndex, 1)
+        }
+
         // MARK: - Helpers
 
         private func makeRouter(host: any LYRouterHost, observers: [DropObserver] = []) throws -> LYStackRouter<ReviewRoute> {
@@ -337,6 +357,15 @@
         }
     }
 
+    /// 记录处理器读取到的上下文状态。
+    @MainActor
+    final class ReviewProbe {
+        weak var navigation: UINavigationController?
+    }
+
+    /// `revealExisting` 查找的目标页面。
+    final class RevealTarget: UIViewController {}
+
     /// 栈顶页面可设置为“正在展示弹窗”，用于阻挡目标域。
     final class BlockingNavigationProbe: UIViewController {
         var isBlocking = false
@@ -350,10 +379,10 @@
 
     /// 审查回归使用的最小路由集合。
     enum ReviewRoute: LYRoutable {
-        case page, other, ask, slow
+        case page, other, ask, slow, reveal
 
         enum Kind: CaseIterable {
-            case page, other, ask, slow
+            case page, other, ask, slow, reveal
         }
 
         var kind: Kind {
@@ -362,6 +391,7 @@
             case .other: .other
             case .ask: .ask
             case .slow: .slow
+            case .reveal: .reveal
             }
         }
     }
@@ -369,8 +399,11 @@
     /// `other` 位于 `me` 目标域且允许外部打开；`ask` 先展示确认框；`slow` 的准备永不返回。
     struct ReviewModule: LYRouteModule {
         static let moduleID = "review"
+        let probe: ReviewProbe?
 
-        init(environment: LYRouteEnvironment) throws {}
+        init(environment: LYRouteEnvironment) throws {
+            probe = try? environment.require(ReviewProbe.self)
+        }
 
         func register(into builder: inout LYStackRouteRegistry<ReviewRoute>.Builder) {
             builder.page(.page, policy: .init(allowsExternal: true)) { _, context in context.show { UIViewController() } }
@@ -381,6 +414,11 @@
                 context.confirm(title: nil, message: nil, confirmTitle: "OK", cancelTitle: "Cancel") { context in
                     context.show { UIViewController() }
                 }
+            }
+            let probe = probe
+            builder.page(.reveal) { _, context in
+                if !context.revealExisting(where: { $0 is RevealTarget }) { context.fail(.unavailable) }
+                probe?.navigation = context.navigationController
             }
             builder.page(.slow) { _, context in
                 context.prepare { _ in
