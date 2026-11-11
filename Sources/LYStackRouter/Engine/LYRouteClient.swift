@@ -58,17 +58,18 @@
 
         private func isClientScopeValid(_ scope: RouteClientScope) -> Bool {
             !Task.isCancelled && !stopped && host != nil && scope.sessionEpoch == sessionEpoch
-                && (!scope.hasPage || isValidOrigin(scope.page))
         }
 
         private func scopedOptions(_ options: LYOpenOptions, scope: RouteClientScope) -> LYOpenOptions {
             guard scope.hasPage else { return options }
-            return LYOpenOptions(animated: options.animated, from: scope.page, extras: options.extras)
+            return LYOpenOptions(animated: options.animated, explicitOrigin: scope.page, extras: options.extras)
         }
 
         private func dismissClient(_ scope: RouteClientScope, animated: Bool) async -> LYOpenResult {
-            guard let navigation = scope.page?.navigationController ?? activeNavigation,
-                  let page = scope.page ?? navigation.topViewController else { return .ignored }
+            // 绑定来源的客户端只操作来源所在栈；来源失效或被覆盖时按用户请求忽略，不改用当前栈顶。
+            if scope.hasPage, !isValidOrigin(scope.page) { return .ignored }
+            guard let navigation = scope.hasPage ? routedPage(for: scope.page)?.navigation : activeNavigation,
+                  let page = scope.hasPage ? routedPage(for: scope.page)?.page : navigation.topViewController else { return .ignored }
             guard host?.isRouterReady == true, originNavigationIsCurrent(navigation), Self.isIdle(navigation),
                   isModalNavigation(navigation) || isNavigationContextReady,
                   currentExecution?.phase != .presenting else { return .ignored }

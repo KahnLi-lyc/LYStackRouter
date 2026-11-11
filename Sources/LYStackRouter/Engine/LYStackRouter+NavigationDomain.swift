@@ -4,24 +4,36 @@
     extension LYStackRouter {
         /// 显式来源必须仍是当前可见导航域的栈顶，不能从被遮挡的旧页面发起导航。
         func isValidOrigin(_ source: UIViewController?) -> Bool {
-            guard let source, let navigation = source.navigationController,
-                  isOwnedOrigin(source), navigation.presentedViewController == nil,
+            guard let source, let routed = routedPage(for: source), isOwnedOrigin(source),
+                  routed.navigation.presentedViewController == nil, routed.page.presentedViewController == nil,
                   source.presentedViewController == nil else { return false }
-            if currentDomain.contains(where: { $0 === navigation }) {
+            if currentDomain.contains(where: { $0 === routed.navigation }) {
                 return host?.routerRootViewController?.presentedViewController == nil
             }
-            return isModalNavigation(navigation) && topPresentedNavigation() === navigation
+            return isModalNavigation(routed.navigation) && topPresentedNavigation() === routed.navigation
         }
 
         /// 检查来源归属，允许有效来源暂时被模态覆盖，供等待请求保留意图。
         func isOwnedOrigin(_ source: UIViewController?) -> Bool {
-            guard let source, let navigation = source.navigationController else { return false }
-            return source.parent != nil && navigation.topViewController === source && originNavigationIsCurrent(navigation)
+            guard let routed = routedPage(for: source) else { return false }
+            return routed.navigation.topViewController === routed.page && originNavigationIsCurrent(routed.navigation)
+        }
+
+        /// 把来源归一到导航栈的直接子页面：栈顶页面内的分页、分段等子控制器以所在页面为来源。
+        /// 页面内嵌的导航栈只认最近一层，嵌套栈需由宿主声明为导航域。
+        func routedPage(for source: UIViewController?) -> (page: UIViewController, navigation: UINavigationController)? {
+            var candidate = source
+            var visited = Set<ObjectIdentifier>()
+            while let current = candidate, visited.insert(ObjectIdentifier(current)).inserted {
+                if let navigation = current.parent as? UINavigationController { return (current, navigation) }
+                candidate = current.parent
+            }
+            return nil
         }
 
         /// 解析本次请求使用的导航栈；显式来源消失时不回退到活跃栈。
         func navigation(for options: LYOpenOptions) -> UINavigationController? {
-            if options.hasExplicitOrigin { return options.from?.navigationController }
+            if options.hasExplicitOrigin { return routedPage(for: options.from)?.navigation }
             return activeNavigation
         }
 
@@ -29,8 +41,7 @@
         func canNavigate(to placement: LYRoutePlacement, options: LYOpenOptions) -> Bool {
             guard options.hasExplicitOrigin else { return canNavigate(to: placement) }
             guard !stopped, currentExecution == nil, let host, host.isRouterReady else { return false }
-            guard let navigation = navigation(for: options) else { return false }
-            if options.hasExplicitOrigin, !isValidOrigin(options.from) { return false }
+            guard let navigation = navigation(for: options), isValidOrigin(options.from) else { return false }
             if isModalNavigation(navigation) {
                 return placement == .current && topPresentedNavigation() === navigation
                     && Self.isIdle(navigation) && host.routerRootViewController?.transitionCoordinator == nil

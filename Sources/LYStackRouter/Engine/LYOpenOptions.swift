@@ -19,5 +19,13 @@
             self.extras = extras
             hasExplicitOrigin = from != nil
         }
+
+        /// 客户端绑定的来源即使已经释放，也按显式来源处理，不会退回到当前活跃栈。
+        init(animated: Bool, explicitOrigin: UIViewController?, extras: [String: any Sendable]) {
+            self.animated = animated
+            from = explicitOrigin
+            self.extras = extras
+            hasExplicitOrigin = true
+        }
     }
 #endif

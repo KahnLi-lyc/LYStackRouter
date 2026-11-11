@@ -8,15 +8,18 @@
         private var gate: Gate!
         private var host: LYTabBarHost!
         private var router: LYStackRouter<AppRoute>!
+        private var observer: RecordingObserver!
 
         override func setUp() async throws {
             gate = Gate()
             host = makeTabHost()
+            observer = RecordingObserver()
             router = try LYStackRouter<AppRoute>.build(
                 host: host,
                 modules: .explicit([CommunityModule.self, ChatModule.self]),
                 environment: makeEnvironment(gate: gate),
                 interceptors: [.session(isActive: { [weak self] in self?.signedIn ?? false })],
+                observers: [observer],
                 url: LYURLConfiguration(schemes: ["app"])
             )
         }
@@ -166,6 +169,7 @@
             router.navigationDidStabilize()
             await waitUntil { self.home.viewControllers.count == 2 }
             XCTAssertEqual(pages(home), [nil, .club("c")])
+            XCTAssertEqual(observer.dropped, [.superseded, .superseded], "被取代的 a、b 各通知一次")
         }
 
         func testExternalRequestDeferredBySessionRunsAfterSignIn() async {
@@ -187,6 +191,7 @@
             host.sessionID = "b"
             router.sessionDidChange()
             XCTAssertNil(router.pending)
+            XCTAssertEqual(observer.dropped, [.sessionReset])
             host.isReady = true
             router.navigationDidStabilize()
             await Task.yield()
@@ -197,6 +202,7 @@
             host.isReady = false
             _ = await router.open(.club("a"), source: .push)
             router.resetSession()
+            XCTAssertEqual(observer.dropped, [.sessionReset])
             host.isReady = true
             router.navigationDidStabilize()
             await Task.yield()

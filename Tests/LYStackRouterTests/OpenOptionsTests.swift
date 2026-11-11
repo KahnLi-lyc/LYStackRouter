@@ -213,7 +213,7 @@
 
             XCTAssertNil(weakOrigin)
             XCTAssertNil(options.from)
-            XCTAssertEqual(router.request(.club("one"), options: options), .failed(.contextChanged))
+            XCTAssertEqual(router.request(.club("one"), options: options), .ignored, "失效来源的用户请求按迟到点击忽略")
             XCTAssertEqual(probe.handlerCalls, 0)
         }
 
@@ -293,6 +293,7 @@
             XCTAssertNil(router.pending)
             XCTAssertEqual(probe.handlerCalls, 0)
             XCTAssertEqual(observer.settled.map(\.1), [.deferred])
+            XCTAssertEqual(observer.dropped, [.originUnavailable])
         }
 
         func testDisabledFallbackUsesCurrentPlacementWhenSchedulingPending() throws {

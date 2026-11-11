@@ -15,9 +15,7 @@
         func submit(_ route: Route, source: LYRouteSource, options: LYOpenOptions = .init()) -> Submission {
             let kind = route.kind
             if let failure = staticFailure(route, source: source) { return settled(kind, source, .failed(failure)) }
-            if options.hasExplicitOrigin, !isOwnedOrigin(options.from) {
-                return settled(kind, source, .failed(.contextChanged))
-            }
+            if options.hasExplicitOrigin, !isOwnedOrigin(options.from) { return settleUnavailableOrigin(kind, source) }
             guard let entry = registry.entries[kind] else {
                 return admit(route, source, options: options, placement: .current, proposed: .failed(.unregistered)) { context in
                     self.fallback?.handle(route, .unregistered, context)
@@ -70,14 +68,12 @@
             proposed: LYOpenResult,
             handle: @escaping (LYRouteContext<Route>) -> Void
         ) -> Submission {
-            if options.hasExplicitOrigin, !isOwnedOrigin(options.from) {
-                return settled(route.kind, source, .failed(.contextChanged))
-            }
+            if options.hasExplicitOrigin, !isOwnedOrigin(options.from) { return settleUnavailableOrigin(route.kind, source) }
             guard canNavigate(to: placement, options: options) else { return deferOrIgnore(route, source, options: options, placement: placement) }
             // 新准入的外部请求取代所有更早的等待请求。
             var intent: Pending?
             if source.isExternal {
-                pending = nil
+                dropPending(.superseded)
                 sequence &+= 1
                 intent = Pending(route: route, source: source, options: options, sequence: sequence, sessionID: host?.routerSessionID)
             }
@@ -89,9 +85,16 @@
             }
         }
 
+        /// 显式来源已释放、不在栈顶或不属于宿主：用户请求视为迟到点击而忽略，外部请求以 `contextChanged` 失败。
+        /// 来源仍属于宿主但暂时被覆盖时不走这里，而是按受阻处理（用户忽略、外部等待）。
+        private func settleUnavailableOrigin(_ kind: Route.Kind, _ source: LYRouteSource) -> Submission {
+            settled(kind, source, source.isExternal ? .failed(.contextChanged) : .ignored)
+        }
+
         /// 用户请求受阻时忽略；外部请求保存为最近的等待项。
         private func deferOrIgnore(_ route: Route, _ source: LYRouteSource, options: LYOpenOptions, placement: LYRoutePlacement) -> Submission {
             guard source.isExternal else { return settled(route.kind, source, .ignored) }
+            dropPending(.superseded)
             sequence &+= 1
             pending = Pending(route: route, source: source, options: options, sequence: sequence, sessionID: host?.routerSessionID)
             observeBlockingPresentation(for: placement)
@@ -199,7 +202,7 @@
         func schedulePending() {
             guard let pending else { return }
             if pending.options.hasExplicitOrigin, !isOwnedOrigin(pending.options.from) {
-                self.pending = nil
+                dropPending(.originUnavailable)
                 return
             }
             guard canNavigate(to: placement(of: pending.route), options: pending.options) else {
@@ -226,10 +229,26 @@
                 observeBlockingPresentation(for: placement(of: intent.route))
                 return
             }
+            guard intent.sessionID == nil || intent.sessionID == host?.routerSessionID else {
+                dropPending(.sessionChanged)
+                return
+            }
             pending = nil
-            let session = host?.routerSessionID
-            guard intent.sessionID == nil || intent.sessionID == session else { return }
             _ = submit(intent.route, source: intent.source, options: intent.options)
+        }
+
+        /// 丢弃等待请求并通知观察者。没有等待请求时不做任何事，因此每个等待请求最多通知一次。
+        func dropPending(_ reason: LYPendingDropReason) {
+            guard let dropped = pending else { return }
+            pending = nil
+            notifyDrop(dropped, reason: reason)
+        }
+
+        /// 通知观察者一个已以 `.deferred` 结算的请求不会再执行。
+        func notifyDrop(_ dropped: Pending, reason: LYPendingDropReason) {
+            for observer in observers {
+                observer.routeDidDropPending(dropped.route.kind, source: dropped.source, reason: reason)
+            }
         }
 
         func placement(of route: Route) -> LYRoutePlacement {

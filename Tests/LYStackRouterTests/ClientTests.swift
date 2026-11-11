@@ -101,7 +101,8 @@
 
             XCTAssertNil(weakPage)
             let result = await client.open(.club("one"))
-            XCTAssertEqual(result, .failed(.contextChanged))
+            XCTAssertEqual(result, .ignored)
+            XCTAssertEqual(host.activeNavigationController?.viewControllers.count, 1)
         }
 
         func testRemovedSourceCannotRetargetToCurrentTop() async throws {
@@ -115,7 +116,7 @@
             navigation.popViewController(animated: false)
 
             let result = await client.open(.club("one"))
-            XCTAssertEqual(result, .failed(.contextChanged))
+            XCTAssertEqual(result, .ignored)
             XCTAssertEqual(navigation.viewControllers.count, 1)
         }
 
@@ -131,8 +132,8 @@
 
             let open = await client.open(.club("one"))
             let dismiss = await client.dismiss(animated: false)
-            XCTAssertEqual(open, .failed(.contextChanged))
-            XCTAssertEqual(dismiss, .failed(.contextChanged))
+            XCTAssertEqual(open, .ignored)
+            XCTAssertEqual(dismiss, .ignored)
             XCTAssertTrue(navigation.topViewController === covering)
         }
 

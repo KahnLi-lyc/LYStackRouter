@@ -57,8 +57,12 @@
             var waitsForStabilization = false
             if result == .failed(.blocked), let intent {
                 if pending == nil || pending!.sequence < intent.sequence {
+                    dropPending(.superseded)
                     pending = intent
                     waitsForStabilization = true
+                } else {
+                    // 执行期间已有更新的外部请求在等待，本请求不再重新入队。
+                    notifyDrop(intent, reason: .superseded)
                 }
                 result = .deferred
             }
@@ -226,7 +230,8 @@
         /// 核对准备中的执行来源是否仍有效，并尝试执行等待中的外部请求。
         public func navigationDidStabilize() {
             guard !stopped, host != nil else { return }
-            if host?.isRouterReady != true { terminateExecution() }
+            // 宿主未就绪只抢占准备阶段；展示阶段已交给 UIKit，由转场完成或确认框移除观察结算。
+            if host?.isRouterReady != true, currentExecution?.phase == .preparing { terminateExecution() }
             if let execution = currentExecution, execution.phase == .preparing, execution.hasOrigin {
                 if let transition = host?.routerRootViewController?.transitionCoordinator
                     ?? execution.navigation?.transitionCoordinator {

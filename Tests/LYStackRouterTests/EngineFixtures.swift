@@ -149,6 +149,7 @@
         typealias Route = AppRoute
         var willOpen: [AppRoute.Kind] = []
         var settled: [(AppRoute.Kind?, LYOpenResult)] = []
+        var dropped: [LYPendingDropReason] = []
 
         func routeWillOpen(_ kind: AppRoute.Kind, source: LYRouteSource) {
             willOpen.append(kind)
@@ -156,6 +157,10 @@
 
         func routeDidSettle(_ kind: AppRoute.Kind?, source: LYRouteSource, result: LYOpenResult) {
             settled.append((kind, result))
+        }
+
+        func routeDidDropPending(_ kind: AppRoute.Kind, source: LYRouteSource, reason: LYPendingDropReason) {
+            dropped.append(reason)
         }
     }
 

@@ -199,7 +199,7 @@
 
         /// 无条件清空外部等待请求，并使进行中的导航作废。退出登录、切换账号时使用。
         public func resetSession() {
-            pending = nil
+            dropPending(.sessionReset)
             knownSessionID = host?.routerSessionID
             sessionEpoch = UUID()
             invalidateExecution()
@@ -209,6 +209,7 @@
         public func tearDown() {
             guard !stopped else { return }
             stopped = true
+            dropPending(.stopped)
             resetSession()
             host = nil
         }

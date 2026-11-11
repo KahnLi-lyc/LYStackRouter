@@ -84,6 +84,9 @@
         /// 返回上一页。可以抢占“准备中”的导航（例如还在等网络），但不打断“展示中”的转场。
         /// 被抢占的导航以 `.contextChanged` 结算，其异步任务被取消；已经交给其他对象的工作不受影响。
         public func navigateBack(from page: UIViewController, in navigation: UINavigationController) {
+            // 栈顶页面内的子控制器以所在页面为来源。
+            guard let routed = routedPage(for: page), routed.navigation === navigation else { return }
+            let page = routed.page
             guard host?.isRouterReady == true, originNavigationIsCurrent(navigation), Self.isIdle(navigation),
                   managedNavigations[ObjectIdentifier(navigation)] != nil || isNavigationContextReady,
                   navigation.topViewController === page, page.parent != nil, navigation.viewControllers.count > 1,
