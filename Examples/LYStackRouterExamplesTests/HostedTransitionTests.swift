@@ -86,6 +86,33 @@ final class HostedTransitionTests: XCTestCase {
         XCTAssertEqual(home.viewControllers.count, 1)
     }
 
+    /// 先建宿主、后放导航栈（示例 App 曾经的顺序）：准备期间用户点系统返回，不经过路由器。
+    /// 宿主必须收到 UIKit 的 didShow，才能在准备结束前以 `.contextChanged` 结算原请求。
+    func testSystemBackDuringPreparationPreemptsWhenTabsAreAddedAfterHost() async throws {
+        let tabs = UITabBarController()
+        let lateHost = LYTabBarHost(
+            tabBarController: tabs,
+            placements: [LYRoutePlacement("home"): 0, LYRoutePlacement("messages"): 1, LYRoutePlacement("me"): 2]
+        )
+        tabs.viewControllers = (0 ..< 3).map { _ in UINavigationController(rootViewController: TestPage(nil)) }
+        router.attach(lateHost)
+        host = lateHost
+        window.rootViewController = tabs
+        await waitUntil { tabs.viewIfLoaded?.window != nil && self.isIdle }
+
+        _ = await router.open(.club("x"))
+        let opening = Task { await router.open(.slowChat("s1")) }
+        await waitUntil { self.gate.waiting == 1 }
+        home.popViewController(animated: true)
+        await waitUntil { !self.router.isNavigating }
+        XCTAssertFalse(router.isNavigating, "系统返回后，准备结束前就应释放执行权")
+        gate.open()
+        let result = await opening.value
+        XCTAssertEqual(result, .failed(.contextChanged))
+        await waitUntil { self.isIdle }
+        XCTAssertEqual(home.viewControllers.count, 1, "迟到的准备不能再展示页面")
+    }
+
     // MARK: - Modal
 
     func testExternalRequestWaitsForSheetDismissal() async {

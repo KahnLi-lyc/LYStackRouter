@@ -16,8 +16,15 @@
         public var isReady = true
         /// 业务自己的导航代理，宿主会转发 `willShow` 与 `didShow`。
         public weak var forwardingDelegate: (any UINavigationControllerDelegate)?
-        /// 由路由器在 `attach` 时设置。
-        public var onNavigationDidShow: ((UINavigationController) -> Void)?
+        /// 由路由器在 `attach` 时设置；设置时宿主会成为当前全部导航栈的代理。
+        ///
+        /// 宿主创建后才放入 TabBar 的导航栈，会在 `attach` 时补装代理；之后若再更换 `viewControllers`，
+        /// 请重新调用 `router.attach(host)`。
+        public var onNavigationDidShow: ((UINavigationController) -> Void)? {
+            didSet {
+                if onNavigationDidShow != nil { installDelegates() }
+            }
+        }
 
         // MARK: - Initialization
 
@@ -26,9 +33,7 @@
             self.tabBarController = tabBarController
             self.placements = placements
             super.init()
-            for navigation in allNavigationControllers {
-                navigation.delegate = self
-            }
+            installDelegates()
         }
 
         // MARK: - LYRouterHost
@@ -92,6 +97,13 @@
         }
 
         // MARK: - Private
+
+        /// 成为全部导航栈的代理，才能把 UIKit 的 `didShow`（包括系统返回与侧滑）上报给路由器。
+        private func installDelegates() {
+            for navigation in allNavigationControllers where navigation.delegate !== self {
+                navigation.delegate = self
+            }
+        }
 
         private func navigation(at index: Int?) -> UINavigationController? {
             guard let index, let controllers = tabBarController.viewControllers, controllers.indices.contains(index) else {

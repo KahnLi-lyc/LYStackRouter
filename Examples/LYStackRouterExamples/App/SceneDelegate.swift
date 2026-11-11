@@ -20,7 +20,15 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
         let home = HomeViewController(metrics: metrics)
         let conversations = ConversationsViewController(metrics: metrics)
+        // 先放好三个导航栈再创建宿主，宿主初始化时即可成为它们的代理；“我的”页依赖构建结果，稍后填入根页面。
+        let meNavigation = UINavigationController()
+        meNavigation.tabBarItem = UITabBarItem(title: "我的", image: UIImage(systemName: "person"), selectedImage: nil)
         let tabBar = UITabBarController()
+        tabBar.viewControllers = [
+            Self.tab(home, title: "首页", image: "house"),
+            Self.tab(conversations, title: "消息", image: "bubble.left.and.bubble.right"),
+            meNavigation
+        ]
         let host = DemoHost(tabs: LYTabBarHost(tabBarController: tabBar, placements: [.home: 0, .messages: 1, .me: 2]))
         let account = DemoAccount(
             isSignedIn: { [weak host] in host?.sessionID != nil },
@@ -37,11 +45,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // 输出组装结果，便于在 Release 构建中确认自动发现没有被链接器裁掉。
         print("LYStackRouterExamples \(assembly)")
         let me = MeViewController(metrics: metrics, assembly: assembly)
-        tabBar.viewControllers = [
-            Self.tab(home, title: "首页", image: "house"),
-            Self.tab(conversations, title: "消息", image: "bubble.left.and.bubble.right"),
-            Self.tab(me, title: "我的", image: "person")
-        ]
+        meNavigation.setViewControllers([me], animated: false)
         let open: (DemoRoute) -> Void = { [weak router] route in _ = router?.request(route) }
         home.open = open
         conversations.open = open

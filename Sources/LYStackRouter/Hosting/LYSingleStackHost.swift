@@ -14,8 +14,12 @@
         public var isReady = true
         /// 业务自己的导航代理，宿主会转发 `willShow` 与 `didShow`。
         public weak var forwardingDelegate: (any UINavigationControllerDelegate)?
-        /// 由路由器在 `attach` 时设置。
-        public var onNavigationDidShow: ((UINavigationController) -> Void)?
+        /// 由路由器在 `attach` 时设置；设置时宿主会重新成为导航栈的代理。
+        public var onNavigationDidShow: ((UINavigationController) -> Void)? {
+            didSet {
+                if onNavigationDidShow != nil, navigationController.delegate !== self { navigationController.delegate = self }
+            }
+        }
 
         // MARK: - Initialization
 
