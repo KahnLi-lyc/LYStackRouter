@@ -28,6 +28,7 @@ public extension LYRoutePlacement {
 - 依赖只从 `LYRouteEnvironment` 取：`try environment.require(ClubAPI.self)`。缺依赖时构建报出模块名和类型。
 - 页面用 `builder.page`，不改变导航栈的操作（弹面板、打开系统设置）用 `builder.action`，后者结果为 `.performed`。
 - 需要从推送、深链、H5 打开的路由，显式设置 `allowsExternal: true`。
+- URL 的 `parse` 与 `print` 必须往返一致且没有副作用：`router.url(for:)` 会用整张路由表解析生成的 URL，解析结果不等于原路由时返回 nil，因此 `parse` 做了规范化（例如把未知参数改成默认值）的路由无法生成 URL。
 - 参数校验放进 `validate`，校验失败不会产生任何导航副作用。
 - 跨模块跳转只调用 `context.open(.chat(id))`，不 import 对方模块。
 

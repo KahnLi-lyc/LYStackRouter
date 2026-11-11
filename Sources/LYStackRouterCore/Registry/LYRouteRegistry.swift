@@ -43,17 +43,23 @@ public struct LYRouteRegistry<Route: LYRoutable, Context> {
         return urlTable.route(segments: segments, query: components.query)
     }
 
-    /// 为路由生成 URL；`universalLinkHost` 为 nil 时使用自定义 scheme。没有模板能表达该路由时返回 nil。
+    /// 为路由生成 URL；`universalLinkHost` 为 nil 时使用自定义 scheme。
+    ///
+    /// 生成的 URL 必须能被整张路由表解析回同一路由：首选模板被更具体的模板截获（例如 `club/new`）时换用下一个能表达它的模板，
+    /// 都不行时返回 nil。`parse` 会规范化参数的路由，如果规范化后不等于原路由，同样返回 nil。往返校验不应用远程重写。
     public func url(
         for route: Route,
         configuration: LYURLConfiguration,
         universalLinkHost: String? = nil
     ) -> URL? {
-        guard let components = urlTable.components(for: route) else { return nil }
-        return configuration.url(
-            segments: components.segments,
-            query: components.query,
-            universalLinkHost: universalLinkHost
-        )
+        for candidate in urlTable.componentsCandidates(for: route) {
+            guard let generated = configuration.url(
+                segments: candidate.segments,
+                query: candidate.query,
+                universalLinkHost: universalLinkHost
+            ), self.route(for: generated, configuration: configuration) == route else { continue }
+            return generated
+        }
+        return nil
     }
 }

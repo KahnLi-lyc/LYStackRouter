@@ -52,12 +52,11 @@ package struct LYURLTable<Route: LYRoutable>: Sendable {
         return nil
     }
 
-    /// 生成路由对应的路径段与 query；没有模板能表达该路由时返回 nil。
-    package func components(for route: Route) -> (segments: [String], query: [String: String])? {
-        for entry in entries {
-            guard let values = entry.print(route), let segments = entry.template.render(values.path) else { continue }
+    /// 按模板排序列出所有能表达该路由的路径段与 query，供调用方逐个做往返校验。
+    package func componentsCandidates(for route: Route) -> [(segments: [String], query: [String: String])] {
+        entries.compactMap { entry in
+            guard let values = entry.print(route), let segments = entry.template.render(values.path) else { return nil }
             return (segments, values.query)
         }
-        return nil
     }
 }
