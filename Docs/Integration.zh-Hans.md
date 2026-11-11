@@ -79,6 +79,8 @@ let router = try LYStackRouter<AppRoute>.build(
 | 标准 `UITabBarController`，每个 Tab 一个导航栈 | `LYTabBarHost(tabBarController:placements:)` |
 | 自研 TabBar、分栏容器、浮窗 | 自定义类型遵循 `LYRouterHost`；可以组合 `LYTabBarHost`，只覆盖需要的方法 |
 
+自定义容器（或 `customShow`、处理器）以 `.blocked` 挡住外部请求时，请求会进入等待，只在新的稳定事件后重试；阻挡解除后宿主必须调用 `router.navigationDidStabilize()`，否则请求会一直等待。
+
 自定义宿主需要在导航栈 `didShow` 时调用 `router.navigationDidShow(in:)`，或者遵循 `LYNavigationEventSource` 让路由器在 `attach` 时自动接上回调。示例工程的 `DemoHost` 展示了组合写法与 `customShow` 钩子。
 
 如果业务也需要导航代理，设置内置宿主的 `forwardingDelegate`，不要替换导航栈的 `delegate`。

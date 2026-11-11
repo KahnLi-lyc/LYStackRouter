@@ -26,6 +26,7 @@
         /// 切换到某个导航栈所在的域，用于跨域回到已有页面。
         func reveal(_ navigationController: UINavigationController)
         /// 自定义展示钩子：返回非 nil 表示宿主已自行展示（例如放进分栏容器），路由器不再 push。
+        /// 返回 `.failed(.blocked)` 时外部请求进入等待；阻挡解除后宿主须调用 `router.navigationDidStabilize()`。
         func customShow(
             _ page: @autoclosure () -> UIViewController,
             identity: AnyHashable?,

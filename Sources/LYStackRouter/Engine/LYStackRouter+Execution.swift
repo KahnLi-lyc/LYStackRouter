@@ -42,18 +42,29 @@
         }
 
         /// 结算当前执行。外部请求在展示阶段被阻塞时重新进入等待。
+        ///
+        /// 刚受阻的请求等新的稳定事件（弹窗关闭、导航 `didShow`、转场完成或宿主调用 `navigationDidStabilize()`）再重试，
+        /// 不在本次结算中立即消费，否则标准导航域看似空闲时会不断自我重放。执行期间到达的更新请求照常调度。
         func complete(_ execution: NavigationExecution, intent: Pending?) -> LYOpenResult {
             guard isCurrent(execution) else { return execution.result ?? .failed(.contextChanged) }
             detachConfirmationObservation()
             var result = execution.proposedResult
+            var waitsForStabilization = false
             if result == .failed(.blocked), let intent {
-                if pending == nil || pending!.sequence < intent.sequence { pending = intent }
+                if pending == nil || pending!.sequence < intent.sequence {
+                    pending = intent
+                    waitsForStabilization = true
+                }
                 result = .deferred
             }
             currentExecution = nil
             _ = execution.takeWorkers()
             execution.finish(result)
-            schedulePending()
+            if waitsForStabilization, let pending {
+                observeBlockingPresentation(for: placement(of: pending.route))
+            } else {
+                schedulePending()
+            }
             return result
         }
 
