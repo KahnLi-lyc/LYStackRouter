@@ -67,7 +67,7 @@ let router = try LYStackRouter<AppRoute>.build(
 )
 ```
 
-- 每个窗口创建自己的宿主和路由器，由 SceneDelegate 或窗口协调器持有。路由器弱引用宿主。
+- 每个窗口创建自己的宿主和路由器，由 SceneDelegate 或窗口协调器**同时持有两者**（写法见 README 的 `AppCoordinator`）。路由器只弱引用宿主，宿主也只弱引用路由器的回调，两者之间没有循环持有；只保存路由器、不保存宿主时，宿主会立刻释放，用户请求被忽略、外部请求一直等待。
 - 根视图上屏前把宿主的 `isRouterReady` 设为 false；上屏后改为 true 并调用 `router.navigationDidStabilize()`，冷启动携带的深链会在这之后执行。
 - 会话变化后更新宿主的 `routerSessionID` 并调用 `router.sessionDidChange()`。
 - 场景断开时调用 `router.tearDown()`，之后的请求以 `.stopped` 失败。
@@ -85,6 +85,8 @@ let router = try LYStackRouter<AppRoute>.build(
 自定义宿主需要在导航栈 `didShow` 时调用 `router.navigationDidShow(in:)`，或者遵循 `LYNavigationEventSource` 让路由器在 `attach` 时自动接上回调。示例工程的 `DemoHost` 展示了组合写法与 `customShow` 钩子。
 
 如果业务也需要导航代理，设置内置宿主的 `forwardingDelegate`，不要替换导航栈的 `delegate`。
+
+内置宿主在路由器 `attach` 时会成为当前全部导航栈的代理，所以“先建宿主、后放导航栈”也能收到系统返回与侧滑的 `didShow`。之后若再更换 `tabBarController.viewControllers`，请重新调用 `router.attach(host)`。
 
 ## 4. 拦截、降级与观察
 
@@ -106,8 +108,10 @@ let router = try LYStackRouter<AppRoute>.build(
 业务模块的 Demo App 只需要自己的模块：
 
 ```swift
-let router = try LYStackRouter<AppRoute>.build(
-    host: LYSingleStackHost(navigationController: navigation),
+// Demo 的 SceneDelegate 用属性同时持有宿主与路由器；路由器只弱引用宿主。
+demoHost = LYSingleStackHost(navigationController: navigation)
+demoRouter = try LYStackRouter<AppRoute>.build(
+    host: demoHost,
     modules: .explicit([ClubRouteModule.self]),
     environment: demoEnvironment,
     fallback: .placeholder,

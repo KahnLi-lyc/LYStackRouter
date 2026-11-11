@@ -70,19 +70,39 @@ struct ClubRouteModule: LYRouteModule {
     }
 }
 
-// 3. 宿主为每个窗口组装一个路由器。
+// 3. 每个窗口一个协调器，同时持有宿主与路由器。
+//    路由器只弱引用宿主：直接在 build(host:) 里创建的宿主会立刻释放。
+@MainActor
+final class AppCoordinator {
+    private let host: LYTabBarHost
+    let router: LYStackRouter<AppRoute>
+
+    init(tabs: UITabBarController, environment: LYRouteEnvironment) throws {
+        let host = LYTabBarHost(tabBarController: tabs, placements: [LYRoutePlacement("messages"): 1])
+        host.isReady = false                    // 根视图上屏前不导航
+        self.host = host
+        router = try LYStackRouter<AppRoute>.build(
+            host: host,
+            modules: .explicit([ClubRouteModule.self, ChatRouteModule.self, WalletRouteModule.self]),
+            environment: environment,
+            interceptors: [.session(isActive: { session.isSignedIn })],
+            url: LYURLConfiguration(schemes: ["myapp"], universalLinkHosts: ["app.example.com"])
+        )
+    }
+
+    func rootDidAppear() {
+        host.isReady = true
+        router.navigationDidStabilize()         // 执行冷启动时等待的深链
+    }
+}
+
+// SceneDelegate 用属性持有协调器。
 var environment = LYRouteEnvironment()
 environment.provide(ClubAPI.self, clubAPI)
-let router = try LYStackRouter<AppRoute>.build(
-    host: LYTabBarHost(tabBarController: tabs, placements: [LYRoutePlacement("messages"): 1]),
-    modules: .explicit([ClubRouteModule.self, ChatRouteModule.self, WalletRouteModule.self]),
-    environment: environment,
-    interceptors: [.session(isActive: { session.isSignedIn })],
-    url: LYURLConfiguration(schemes: ["myapp"], universalLinkHosts: ["app.example.com"])
-)
+coordinator = try AppCoordinator(tabs: tabs, environment: environment)
 
-router.request(.club("42"))                    // 用户点击，同步返回结果
-await router.openURL(url, source: .deepLink)    // 外部请求
+coordinator.router.request(.club("42"))                    // 用户点击，同步返回结果
+await coordinator.router.openURL(url, source: .deepLink)    // 外部请求
 ```
 
 ## 注册方式：显式或自动发现

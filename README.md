@@ -70,19 +70,39 @@ struct ClubRouteModule: LYRouteModule {
     }
 }
 
-// 3. The host assembles one router per window.
+// 3. One coordinator per window owns both the host and the router.
+//    The router holds its host weakly: a host created inline in `build(host:)` is released at once.
+@MainActor
+final class AppCoordinator {
+    private let host: LYTabBarHost
+    let router: LYStackRouter<AppRoute>
+
+    init(tabs: UITabBarController, environment: LYRouteEnvironment) throws {
+        let host = LYTabBarHost(tabBarController: tabs, placements: [LYRoutePlacement("messages"): 1])
+        host.isReady = false                                       // until the root is on screen
+        self.host = host
+        router = try LYStackRouter<AppRoute>.build(
+            host: host,
+            modules: .explicit([ClubRouteModule.self, ChatRouteModule.self, WalletRouteModule.self]),
+            environment: environment,
+            interceptors: [.session(isActive: { session.isSignedIn })],
+            url: LYURLConfiguration(schemes: ["myapp"], universalLinkHosts: ["app.example.com"])
+        )
+    }
+
+    func rootDidAppear() {
+        host.isReady = true
+        router.navigationDidStabilize()                            // runs a waiting cold-start deep link
+    }
+}
+
+// SceneDelegate keeps the coordinator in a property.
 var environment = LYRouteEnvironment()
 environment.provide(ClubAPI.self, clubAPI)
-let router = try LYStackRouter<AppRoute>.build(
-    host: LYTabBarHost(tabBarController: tabs, placements: [LYRoutePlacement("messages"): 1]),
-    modules: .explicit([ClubRouteModule.self, ChatRouteModule.self, WalletRouteModule.self]),
-    environment: environment,
-    interceptors: [.session(isActive: { session.isSignedIn })],
-    url: LYURLConfiguration(schemes: ["myapp"], universalLinkHosts: ["app.example.com"])
-)
+coordinator = try AppCoordinator(tabs: tabs, environment: environment)
 
-router.request(.club("42"))                                       // user tap, synchronous result
-await router.openURL(url, source: .deepLink)                       // external request
+coordinator.router.request(.club("42"))                           // user tap, synchronous result
+await coordinator.router.openURL(url, source: .deepLink)           // external request
 ```
 
 ## Registration: explicit or discovered

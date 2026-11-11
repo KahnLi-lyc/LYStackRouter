@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.1（未发布）
+
+### Fixed
+
+- 处理器上下文绑定创建它的那次执行：`show`、`present`、`prepare`、`confirm`、`replaceStack`、`revealExisting`、`continueNavigation`、`markPerformed`、`fail` 在该执行结算后调用会被忽略，旧上下文不再能展示页面或改写后来执行的结果。`open`、`back` 不受影响。
+- 确认框结算后，确认回调在每个挂起点之后核对代次与会话；会话重置或切换后不再继续导航。
+- 禁用（静态或远程重写）与占位路由走兜底前，先经过外部白名单、参数校验与拦截器；未注册路由的外部请求一律 `.unregistered`。
+- 展示阶段以 `.blocked` 结算的外部请求只在新的稳定事件后重试，不再自我重放；执行期间到达的更新请求照常执行。
+- `url(for:)` 只返回能被整张路由表解析回原路由的 URL：首选模板被遮蔽时换用别名模板，都不行时返回 nil。
+- `LYTabBarHost`、`LYSingleStackHost` 在路由器 `attach` 时为全部导航栈安装代理，先建宿主后放导航栈也能上报 `didShow`。
+
+### Documentation
+
+- README 与接入指南改为由协调器同时持有宿主与路由器；说明 `.blocked` 后需调用 `navigationDidStabilize()`、URL `parse`/`print` 需往返一致。
+- 示例 App 改为先放导航栈再创建宿主。
+
 ## 0.1.0 (2026-11-11)
 
 ### Added
