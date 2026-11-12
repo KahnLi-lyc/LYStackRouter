@@ -13,7 +13,7 @@
 ## 安装
 
 ```swift
-.package(url: "https://github.com/KahnLi-lyc/LYStackRouter.git", from: "0.1.0")
+.package(url: "https://github.com/KahnLi-lyc/LYStackRouter.git", from: "0.2.0")
 ```
 
 | 产品 | 内容 | 要求 |

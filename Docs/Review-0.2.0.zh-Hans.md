@@ -47,7 +47,7 @@
 | 主示例宿主内测试与 UI 测试 | 通过 |
 | 两个模块 Demo 的注册测试与 UI 冒烟测试 | 通过 |
 | SwiftFormat 0.59.1、`git diff --check`、XcodeGen 重新生成无差异 | 通过 |
-| GitHub Actions（Xcode 26.6 / Swift 6.3）三个 job | 首轮实现已通过；第二轮修复待推送后确认 |
+| GitHub Actions（Xcode 26.6 / Swift 6.3）三个 job | 首轮实现与第二轮修复均通过 |
 
 ## 环境边界
 
