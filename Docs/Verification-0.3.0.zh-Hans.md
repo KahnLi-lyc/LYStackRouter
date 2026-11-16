@@ -44,6 +44,9 @@
 | 两个模块 Demo 注册与 UI 冒烟 | `DemoCommunityFeature.xcresult`、`DemoMessagingFeature.xcresult`：各 3 项通过 |
 | 动画回退三次定向复跑 | `animated-reuse-1/2/3.xcresult`：各 1 项通过，历史风险见下文 |
 | SwiftFormat 0.59.1／差异检查 | `swiftformat.log`：105 个文件，0 个需格式化；`git diff --check` 通过 |
+| 本地 `main` 集成后复验 | `integrated-package.xcresult`：199 项；`integrated-hosted.xcresult`：34 项；严格并发 build、macOS Core 39 + 宏 4 项、全仓格式与差异检查均通过 |
+
+最终生产源码提交为 `9066d0e84e5caece63fe3c4653203fa3d73ad950`，已本地快进集成到 `main` 并实际复验。完整 UI 与模块 Demo 验证后唯一生产源码变化为 `navigateBack` 的失效入口保护，新增回归与集成后的完整包／宿主测试覆盖该最终版本；未重复整套 UI 和模块测试。文件哈希证据为 `full-suite-source-manifest.json`、`final-suite-source-delta.json` 与 `integrated-source-manifest.json`。
 
 ## 动画回退既有不稳定问题
 
@@ -74,4 +77,4 @@ macOS 严格并发构建／测试无编译警告。iOS 日志中有两类工具�
 
 ## 修复交付状态
 
-规格与代码质量复核均通过，发现的缺陷均有先失败后通过的回归证据。新增回归、公开接口迁移及上述相关验收无未解决失败；代码可作为 0.3.0 未发布版本交付审查。历史动画偶发问题与最低系统／工具链／真机边界仍保留，**尚不放行完整生产接入**。本地集成后复验与缓存收尾记录存放在同一证据批次；不打 tag、不发布。
+规格与代码质量复核均通过，发现的缺陷均有先失败后通过的回归证据。新增回归、公开接口迁移及上述相关验收无未解决失败；代码可作为 0.3.0 未发布版本交付审查。历史动画偶发问题与最低系统／工具链／真机边界仍保留，**尚不放行完整生产接入**。本地集成后复验已通过；缓存收尾记录存放在同一证据批次。未推送、未打 tag、未发布。
