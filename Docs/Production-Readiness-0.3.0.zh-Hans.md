@@ -1,6 +1,6 @@
 # 0.3.0 生产接入审查（2026-11-17）
 
-状态：库修复与当前环境完整验收通过；最低工具链、最低系统及完整设备矩阵尚未验收，**不放行完整生产接入**。版本继续为 **0.3.0 — Unreleased**，无标签或 Release。
+状态：库修复与当前环境完整验收通过；最低工具链与最低系统尚未完整验收，**不放行完整生产接入**。版本继续为 **0.3.0 — Unreleased**，无标签或 Release。
 
 ## 范围与版本
 
@@ -54,11 +54,12 @@
 | 两个 Release 公开 API 消费宿主 | 当前 iOS 27.2 均通过 11 项真实公开 API 检查；Discovery 以实际发现装配，无显式 fallback |
 | Release Archive | 两产品 arm64 无签名 Archive 成功；完整示例 Release 构建通过；首次签名因未指定 Team 失败；随后按用户指定 Personal Team，两个产品开发签名 Archive 均成功，codesign 严格验证通过 |
 | Swift 6.1 配套工具链/SDK | 未验证：官方配套 Xcode 16.3 下载转向账号授权页面，本机未安装 |
-| Swift 6.3 配套工具链/SDK | 未验证：官方配套 Xcode 26.4 下载转向账号授权页面，本机未安装 |
+| Swift 6.3 配套工具链/SDK | 最低配套环境仍未完整验证：Xcode 26.4 本机未安装；远端 CI 已在 Swift 6.3.3／Xcode 26.6 通过严格构建、宏与 iOS Debug 测试，但没有该环境的 Release 消费宿主发现验证 |
 | iOS 16 最小 UIKit 宿主 | 未验证：官方运行时元数据 maxHostVersion/maxXcodeVersion=26.99.0，与本机 27 不兼容；未下载不可用的 6 GB 镜像 |
 | iOS 17 完整示例 | 未验证：本机未安装，官方直接下载需要账号；官方平台下载器请求 17.0 返回 exit 70（本机未支持该下载项），未安装运行时 |
 | iPhone 真机与开发签名 | iPhone 12 Pro Max／iOS 27.0.1：两个 Release 消费 App 各 11 项自动检查通过；Personal Team 开发签名 Archive、严格签名验证、实际安装与启动通过。完整示例的侧滑取消／完整返回、模态内导航后关闭回原首页、切后台恢复且返回可用，均由用户人工确认通过 |
-| iPad 与分发签名 | iPad 仅确认配对，未运行验收；本轮验证开发签名，不涵盖商店分发签名 |
+| iPad 真机与开发签名 | iPad Pro 11 英寸第 2 代／iPadOS 26.6.2：两个 Release 消费 App 各 11 项自动检查通过；描述文件确认包含 iPad，两个新增开发签名 Archive 严格校验通过。用户确认侧滑取消／返回、模态关闭、切 Tab／后台恢复、消息详情导航与 c1→c2 替换均正常 |
+| 分发签名 | 本轮验证 Personal Team 开发签名，不涵盖商店分发签名 |
 
 未修改全局 Xcode 选择；下载仅查询官方来源，没有用非官方 SDK、提高系统下限、屏蔽 warning 或删除目标代替验收。旧环境若无法在本机安装，应在官方支持的另一台 Mac 上按固定源码 SHA 执行 CompatibilityHost 命令。
 
@@ -79,7 +80,7 @@
 
 批次 `lysr-production-readiness-20261117`，预登记能力审查、风险修复、兼容性、最终复验四项。持久根在主 checkout `.build/codex-production-readiness-20261117`，各子任务 evidence/deliveries 分离，共享本批 cache；不复用已回收目录。App 具体映射仅在内部交付材料中，公开文档保持通用。
 
-冻结源码通过两次独立审查；完整复验日志位于 `lysr-readiness-verification/evidence/final`。两个 Release 消费宿主各 11 项检查通过，启动 stderr 无重复类提示。设备架构无签名 Archive 为 arm64、minos 16.0、SDK 27.2；后续另外生成两个 Personal Team 开发签名 Archive，并在上述 iPhone 实际运行。持久侧滑复现脚本另通过 3/3；实际源文件哈希与完整复验一致。真机自动报告和人工协作记录分别保存在 `lysr-readiness-compatibility/evidence/physical-iphone-after-trust` 与 `manual-iphone-acceptance.md`，人工结果不计作自动测试。
+冻结源码通过两次独立审查；完整复验日志位于 `lysr-readiness-verification/evidence/final`。两个 Release 消费宿主各 11 项检查通过，启动 stderr 无重复类提示。设备架构无签名 Archive 为 arm64、minos 16.0、SDK 27.2；后续另外生成两个 Personal Team 开发签名 Archive，并在上述 iPhone 实际运行。持久侧滑复现脚本另通过 3/3；实际源文件哈希与完整复验一致。真机自动报告分别保存在 `lysr-readiness-compatibility/evidence/physical-iphone-after-trust` 与 `physical-ipad/automatic-smoke-verified`；人工协作记录为 `manual-iphone-acceptance.md`、`manual-ipad-acceptance.md`，不计作自动测试。iPad 首次 Archive 复用旧描述文件导致安装失败、以及首次开发者未信任导致启动受阻的原始记录保留；先对实际设备构建并核实描述文件包含该设备、再由用户完成系统信任后通过，没有将 Archive 构建成功等同真机运行。
 
 工具链提示分别核实，未使用统一屏蔽：
 
@@ -88,4 +89,4 @@
 - AppIntents metadata processor 的“无 AppIntents.framework、跳过提取”来自构建工具，验证宿主未使用 App Intents；原始日志保留。
 - Debug hosted 测试存在测试框架与 App debug dylib 重复携带路由类型的既有链接拓扑，原版也存在；独立 Release 消费工程单独运行并采集 stdout/stderr，不能以 Debug 测试替代生产链接证据。
 
-本地 main 集成后的严格构建与完整 hosted 测试已通过，Swift 源码哈希与完整复验一致。远端 CI 及实际缓存处理结果写入本批交付记录。未解决的最低环境和 iPad 验收保持未验证，不以当前 iPhone／模拟器的通过代替。
+本地 main 集成后的严格构建与完整 hosted 测试已通过，110 份 Swift 源码哈希与完整复验一致。实现不变的 `9cf2c0ff848693c927766845312a837d15167388` 已推送，继旧版 CI 之后，[本轮 CI](https://github.com/KahnLi-lyc/LYStackRouter/actions/runs/43933504019) 的 macOS、iOS 包／宿主／模块注册和 SwiftFormat 全部通过。远端使用 Swift 6.3.3、Xcode 26.6、iOS 26.2 Simulator；完整 UI 与 Release 消费验证按上述本地证据记录，不能将 CI 的 Debug 检查写成 Release 验收。实际缓存处理结果写入本批交付记录。未解决的最低环境验收保持未验证，不以当前 iPhone／iPad／模拟器的通过代替。后续仅补充 Markdown 验收记录，按文档变更范围检查差异与源码等价，不重复无关构建。
