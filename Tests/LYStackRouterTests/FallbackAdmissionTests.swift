@@ -9,14 +9,14 @@
         private var host: LYSingleStackHost!
         private var router: LYStackRouter<AppRoute>!
         private var fallbackCalls: [(AppRoute.Kind, LYRouteFallbackReason)] = []
-        private var signedIn = false
+        private var businessReady = false
 
         override func setUp() async throws {
             host = LYSingleStackHost(root: UIViewController())
             router = try LYStackRouter<AppRoute>.build(
                 host: host,
                 modules: .explicit([DegradedModule.self]),
-                interceptors: [.session(isActive: { [weak self] in self?.signedIn ?? false })],
+                interceptors: [.init(name: "businessGate", kinds: [.settings]) { [weak self] _ in self?.businessReady == true ? .proceed : .deferUntilReady }],
                 fallback: LYRouteFallback { [weak self] route, reason, context in
                     self?.fallbackCalls.append((route.kind, reason))
                     context.show { TestPage(nil) }
@@ -48,14 +48,13 @@
             XCTAssertEqual(stackCount, 1)
         }
 
-        func testDisabledFallbackWaitsForSessionThenRunsOnce() async {
+        func testDisabledFallbackWaitsForBusinessGateThenRunsOnce() async {
             let deferred = await router.open(.settings, source: .push)
             XCTAssertEqual(deferred, .deferred)
-            XCTAssertTrue(fallbackCalls.isEmpty, "会话未就绪时兜底不能执行")
+            XCTAssertTrue(fallbackCalls.isEmpty, "业务条件未就绪时兜底不能执行")
 
-            signedIn = true
-            host.sessionID = "u1"
-            router.sessionDidChange()
+            businessReady = true
+            router.navigationDidStabilize()
             await waitUntil { self.fallbackCalls.count == 1 }
             XCTAssertEqual(fallbackCalls.map(\.1), [.unavailable])
             XCTAssertEqual(stackCount, 2)
@@ -117,7 +116,7 @@
             builder.page(.profile, policy: .init(status: .disabled, validate: { route in
                 if case let .profile(id) = route { !id.isEmpty } else { false }
             })) { _, _ in XCTFail("禁用路由的处理器不应被调用") }
-            builder.page(.settings, policy: .init(status: .disabled, allowsExternal: true, requiresSession: true)) { _, _ in
+            builder.page(.settings, policy: .init(status: .disabled, allowsExternal: true)) { _, _ in
                 XCTFail("禁用路由的处理器不应被调用")
             }
             builder.page(.club, policy: .init(validate: { route in

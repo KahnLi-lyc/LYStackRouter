@@ -535,7 +535,6 @@
     @MainActor
     private final class OptionsCustomHost: LYRouterHost {
         let activeNavigationController: UINavigationController? = UINavigationController(rootViewController: UIViewController())
-        let routerSessionID: String? = nil
         let isRouterReady = true
         var options: LYOpenOptions?
         var displayedPage: UIViewController?
@@ -561,7 +560,6 @@
     @MainActor
     private final class LegacyCustomHost: LYRouterHost {
         let activeNavigationController: UINavigationController? = UINavigationController(rootViewController: UIViewController())
-        let routerSessionID: String? = nil
         let isRouterReady = true
         var calls = 0
         var displayedPage: UIViewController?

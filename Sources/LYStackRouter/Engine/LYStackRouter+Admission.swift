@@ -14,6 +14,8 @@
         /// 准入在切换目标域、创建页面等任何副作用之前完成；禁用与占位路由走兜底前同样经过完整准入。
         func submit(_ route: Route, source: LYRouteSource, options: LYOpenOptions = .init()) -> Submission {
             let kind = route.kind
+            guard !stopped else { return settled(kind, source, .failed(.stopped)) }
+            guard !invalidatingContext else { return settled(kind, source, .failed(.contextChanged)) }
             if let failure = staticFailure(route, source: source) { return settled(kind, source, .failed(failure)) }
             if options.hasExplicitOrigin, !isOwnedOrigin(options.from) { return settleUnavailableOrigin(kind, source) }
             guard let entry = registry.entries[kind] else {
@@ -25,8 +27,7 @@
 
             let request = LYInterceptRequest(
                 route: route,
-                source: source,
-                policyRequiresSession: entry.policy.requiresSession
+                source: source
             )
             switch LYRouteInterceptor.evaluate(interceptors, request: request) {
             case .proceed:
@@ -75,7 +76,7 @@
             if source.isExternal {
                 dropPending(.superseded)
                 sequence &+= 1
-                intent = Pending(route: route, source: source, options: options, sequence: sequence, sessionID: host?.routerSessionID)
+                intent = Pending(route: route, source: source, options: options, sequence: sequence)
             }
             for observer in observers {
                 observer.routeWillOpen(route.kind, source: source)
@@ -96,7 +97,7 @@
             guard source.isExternal else { return settled(route.kind, source, .ignored) }
             dropPending(.superseded)
             sequence &+= 1
-            pending = Pending(route: route, source: source, options: options, sequence: sequence, sessionID: host?.routerSessionID)
+            pending = Pending(route: route, source: source, options: options, sequence: sequence)
             observeBlockingPresentation(for: placement)
             return settled(route.kind, source, .deferred)
         }
@@ -108,18 +109,19 @@
             placement: LYRoutePlacement,
             handle: (LYRouteContext<Route>) -> Void
         ) {
-            if let execution = currentExecution, execution.targetNavigation == nil {
-                execution.targetNavigation = activeNavigation
-            }
+            guard let execution = currentExecution, isCurrent(execution) else { return }
+            if execution.targetNavigation == nil { execution.targetNavigation = activeNavigation }
             if placement != .current {
-                currentExecution?.phase = .presenting
-                guard host?.select(placement) != nil else {
+                execution.phase = .presenting
+                let selected = host?.select(placement)
+                guard isCurrent(execution) else { return }
+                guard selected != nil else {
                     markResult(.failed(.unavailable))
                     return
                 }
+                execution.targetNavigation = activeNavigation
             }
-            if placement != .current { currentExecution?.targetNavigation = activeNavigation }
-            handle(makeContext(route, source))
+            handle(LYRouteContext(router: self, route: route, source: source, execution: execution))
         }
 
         /// 在已取得执行权的处理器内继续导航到另一路由，不重新准入、不创建新的执行。
@@ -153,6 +155,7 @@
             _ operation: @escaping (LYRouteContext<Route>) -> Void
         ) -> LYOpenResult {
             guard !stopped else { return .failed(.stopped) }
+            guard !invalidatingContext else { return .failed(.contextChanged) }
             guard canNavigate(to: .current, options: options) else { return .ignored }
             return execute(kind: route.kind, source: source, intent: nil, proposed: .failed(.unavailable), options: options) { [self] in
                 operation(makeContext(route, source))
@@ -227,10 +230,6 @@
             guard let intent = pending else { return }
             guard canNavigate(to: placement(of: intent.route), options: intent.options) else {
                 observeBlockingPresentation(for: placement(of: intent.route))
-                return
-            }
-            guard intent.sessionID == nil || intent.sessionID == host?.routerSessionID else {
-                dropPending(.sessionChanged)
                 return
             }
             pending = nil

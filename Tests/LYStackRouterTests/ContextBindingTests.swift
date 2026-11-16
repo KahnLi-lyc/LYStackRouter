@@ -34,14 +34,13 @@
 
         // MARK: - Page Callbacks
 
-        func testContextOpenKeepsWorkingAfterSettlementAndSignIn() throws {
+        func testContextOpenKeepsWorkingAfterSettlementWithoutInvalidation() throws {
             XCTAssertEqual(router.request(.club("x")), .created)
             let context = try XCTUnwrap(probe.contexts.first)
             XCTAssertEqual(context.open(.profile("a")), .created, "原导航结算后，页面回调仍可发起导航")
 
-            host.sessionID = "u1"
-            router.sessionDidChange()
-            XCTAssertEqual(context.open(.profile("b")), .created, "登录会更新代次，但已有页面的回调不能因此失效")
+            router.navigationDidStabilize()
+            XCTAssertEqual(context.open(.profile("b")), .created, "稳定事件不应使已有页面回调失效")
 
             router.tearDown()
             XCTAssertEqual(context.open(.profile("c")), .failed(.stopped))
@@ -66,16 +65,16 @@
 
         // MARK: - Confirmation
 
-        func testSettledConfirmationDoesNotRunAfterSessionReset() async {
+        func testSettledConfirmationDoesNotRunAfterContextInvalidation() async {
             let presented = presentConfirmation()
             presented.onPresented()
-            router.resetSession()
+            router.invalidateContext()
             presented.confirm()
             await settle()
-            XCTAssertEqual(probe.confirmed, 0, "会话重置后，旧确认框的确认不能继续导航")
+            XCTAssertEqual(probe.confirmed, 0, "上下文失效后，旧确认框的确认不能继续导航")
         }
 
-        func testSettledConfirmationRunsOnceWithoutSessionChange() async {
+        func testSettledConfirmationRunsOnceWithoutContextInvalidation() async {
             let presented = presentConfirmation()
             presented.onPresented()
             presented.confirm()

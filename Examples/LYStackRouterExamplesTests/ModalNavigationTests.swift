@@ -1,5 +1,6 @@
 import UIKit
 import XCTest
+@testable import LYStackRouterExamples
 @testable import LYStackRouter
 
 /// 使用真实窗口验证模态导航域、准备期抢占、代理转发及退出清理。
@@ -447,7 +448,7 @@ final class ModalNavigationTests: XCTestCase {
         await waitUntil { self.router.managedNavigations[ObjectIdentifier(flow)] != nil }
     }
 
-    /// 模态内的登录流程：登录（nil → 会话）后仍由路由器接管该栈，返回与客户端关闭照常生效。
+    /// 业务普通登录不调用失效接口：模态栈、返回与已有客户端继续生效。
     func testLoginKeepsManagedModalBackAndDismiss() async throws {
         let modal = await presentModal()
         let root = try XCTUnwrap(modal.topViewController as? TestPage)
@@ -457,8 +458,9 @@ final class ModalNavigationTests: XCTestCase {
         let profile = try XCTUnwrap(modal.topViewController as? TestPage)
         let client = router.makeClient(from: club)
 
-        host.sessionID = "signed-in"
-        router.sessionDidChange()
+        let account = DemoAccount()
+        account.signIn()
+        XCTAssertTrue(account.isSignedIn)
 
         XCTAssertNotNil(router.managedNavigations[ObjectIdentifier(modal)])
         router.navigateBack(from: profile, in: modal)

@@ -14,7 +14,7 @@ public enum LYRouteFailure: Hashable, Sendable {
     case rejected(String)
     /// 宿主正在转场或被弹窗遮挡，暂时无法执行。
     case blocked
-    /// 执行期间被返回抢占、宿主更换或会话变化，原请求作废。
+    /// 执行期间被返回抢占、调用任务取消、宿主更换或上下文失效，原请求作废。
     case contextChanged
     /// 业务权限不足。
     case permissionDenied

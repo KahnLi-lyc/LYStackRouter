@@ -17,6 +17,7 @@
 		5854D499206312C662EC9E0E /* HostedTransitionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55125923E4A2A95F8CB6BF69 /* HostedTransitionTests.swift */; };
 		6AE11A0D08B1D5B92D400CC7 /* AccountRouteModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36B2FBBB42DF417B2CD9E879 /* AccountRouteModule.swift */; };
 		8AF9909D8876FD2A6FDA4EA0 /* DemoUIKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5C02F9A36E1FF9CA6F37B8DA /* DemoUIKit */; };
+		A65C3AC19CDD4C4AE648A94A /* BusinessRoutingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF7A172D6ABBBA7D69396321 /* BusinessRoutingTests.swift */; };
 		A9DE92D48E426B9D1DCF362A /* LYStackRouterDiscovery in Frameworks */ = {isa = PBXBuildFile; productRef = 18C6705EEAB95B83CEB086D0 /* LYStackRouterDiscovery */; };
 		B1ADA01B8A0718E97994744B /* NestedContainerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B0B182950D2508161E83FD8 /* NestedContainerTests.swift */; };
 		BBDE6E2F92CA392CAF5F1AE2 /* DemoCommunityFeature in Frameworks */ = {isa = PBXBuildFile; productRef = A81F455A845F49D38A805D23 /* DemoCommunityFeature */; };
@@ -63,6 +64,7 @@
 		9B8B321C3E9976BE554CA613 /* LYStackRouterExamplesTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LYStackRouterExamplesTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9DD0D3E2DC539E48B0087414 /* LYStackRouterExamplesUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LYStackRouterExamplesUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		ACFB47EC7A618786AA38CF27 /* DemoMessagingFeature */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DemoMessagingFeature; path = Packages/DemoMessagingFeature; sourceTree = SOURCE_ROOT; };
+		AF7A172D6ABBBA7D69396321 /* BusinessRoutingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BusinessRoutingTests.swift; sourceTree = "<group>"; };
 		B219BA752BC64DC5E330898D /* LYStackRouterExamples.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LYStackRouterExamples.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B839A155A87C8F2B82DF45D1 /* ModalNavigationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModalNavigationTests.swift; sourceTree = "<group>"; };
 		EB3BC1388D497AFDB48D6680 /* DemoUIKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DemoUIKit; path = Packages/DemoUIKit; sourceTree = SOURCE_ROOT; };
@@ -201,6 +203,7 @@
 		B35ECA362966D59F95D959B0 /* LYStackRouterExamplesTests */ = {
 			isa = PBXGroup;
 			children = (
+				AF7A172D6ABBBA7D69396321 /* BusinessRoutingTests.swift */,
 				55125923E4A2A95F8CB6BF69 /* HostedTransitionTests.swift */,
 				B839A155A87C8F2B82DF45D1 /* ModalNavigationTests.swift */,
 				9B0B182950D2508161E83FD8 /* NestedContainerTests.swift */,
@@ -359,6 +362,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A65C3AC19CDD4C4AE648A94A /* BusinessRoutingTests.swift in Sources */,
 				36E414291A1BBCD172452A96 /* EngineFixtures.swift in Sources */,
 				5854D499206312C662EC9E0E /* HostedTransitionTests.swift in Sources */,
 				27432A8D45CFBCC059E9F796 /* ModalNavigationTests.swift in Sources */,

@@ -8,7 +8,7 @@
     ///
     /// 上下文绑定创建它的那次执行：`show`、`present`、`prepare`、`confirm`、`replaceStack`、`revealExisting`、
     /// `continueNavigation`、`markPerformed`、`fail` 只在该执行仍是当前执行时生效，之后调用会被忽略。
-    /// `open` 与 `back` 不受此限制，页面在整个生命周期内都可以用它们发起新导航。
+    /// `open`、`back` 与 `makeClient` 可在执行结算后使用，但始终绑定创建时的上下文代次。
     @MainActor
     public struct LYRouteContext<Route: LYRoutable> {
         // MARK: - Properties
@@ -21,6 +21,7 @@
         /// 本次执行的打开选项。
         public let options: LYOpenOptions
 
+        private let generation: UUID
         private weak var router: LYStackRouter<Route>?
         private weak var execution: NavigationExecution?
         private weak var targetNavigation: UINavigationController?
@@ -29,6 +30,7 @@
 
         init(router: LYStackRouter<Route>, route: Route, source: LYRouteSource, execution: NavigationExecution? = nil) {
             self.router = router
+            generation = router.generation
             self.route = route
             self.source = source
             self.execution = execution
@@ -63,11 +65,16 @@
                     return created
                 }
                 if let result = router.host?.customShow(page(), identity: identity, in: navigation, options: resolvedOptions(animated)) {
-                    router.currentExecution?.phase = .presenting
+                    guard isCurrentExecution else { return }
+                    execution?.phase = .presenting
                     router.markResult(result)
                     return
                 }
-                router.push(page(), in: navigation, animated: animated ?? options.animated)
+                guard isCurrentExecution else { return }
+                let created = page()
+                // 页面构造与宿主钩子均可同步使上下文失效，跨过它们后重新核对执行权。
+                guard isCurrentExecution else { return }
+                router.push(created, in: navigation, animated: animated ?? options.animated)
             }
         }
 
@@ -84,6 +91,7 @@
                 guard let router, router.isCurrent(epoch), let modal = page as? UINavigationController else { return }
                 router.adoptModalNavigation(modal)
             }
+            guard isCurrentExecution else { return }
             if let modal = page as? UINavigationController { router.adoptModalNavigation(modal) }
             router.markResult(page.presentingViewController == nil ? .failed(.blocked) : .created)
         }
@@ -98,6 +106,7 @@
                   let execution = router.bindOrigin(source: origin, navigation: navigation) else { return }
             let context = LYRouteContext(router: router, route: route, source: source, execution: execution)
             execution.preparationTask = Task { @MainActor [weak router, weak execution] in
+                guard !Task.isCancelled, context.isCurrentExecution else { return }
                 do {
                     try await work(context)
                 } catch {
@@ -140,7 +149,7 @@
                 guard !state.handled else { return }
                 state.handled = true
                 Task { @MainActor [weak router, weak navigation, weak origin, weak alert] in
-                    // 确认框结算后执行已结束；每个挂起点之后都核对代次与会话，会话变化后不再继续。
+                    // 确认框结算后执行已结束；每个挂起点之后都核对代次，上下文失效后不再继续。
                     guard await execution.value() == .awaitingConfirmation, let router,
                           router.isConfirmationContextValid(execution) else { return }
                     // 确认动作早于系统关闭完成；等确认框真正关闭后再重新取得执行权。
@@ -182,12 +191,14 @@
         /// 发起一次新的用户导航，适合页面按钮回调；导航进行中时被忽略。
         @discardableResult
         public func open(_ route: Route, options: LYOpenOptions = .init()) -> LYOpenResult {
-            router?.request(route, options: options) ?? .failed(.stopped)
+            guard let router, !router.stopped else { return .failed(.stopped) }
+            guard router.isCurrent(generation) else { return .failed(.contextChanged) }
+            return router.request(route, options: options)
         }
 
         /// 返回上一页，可以抢占准备中的导航。
         public func back(from page: UIViewController) {
-            guard let router, let navigation = page.navigationController else { return }
+            guard let router, router.isCurrent(generation), let navigation = page.navigationController else { return }
             router.navigateBack(from: page, in: navigation)
         }
 
@@ -195,6 +206,7 @@
         public func replaceStack(_ pages: [UIViewController], animated: Bool? = nil) {
             guard isCurrentExecution, let router, let navigation = execution?.targetNavigation else { return }
             router.replaceStack(pages, in: navigation, animated: animated ?? options.animated)
+            guard isCurrentExecution else { return }
             router.markResult(.created)
         }
 
@@ -217,9 +229,9 @@
             router?.markResult(.failed(failure))
         }
 
-        /// 创建可供页面与业务依赖注入的客户端，绑定当前宿主与会话代次。
+        /// 创建可供页面与业务依赖注入的客户端，绑定本上下文创建时的代次。
         public func makeClient(from page: UIViewController? = nil) -> LYRouteClient<Route> {
-            router?.makeClient(from: page) ?? LYRouteClient(
+            router?.makeClient(from: page, generation: generation) ?? LYRouteClient(
                 open: { _, _ in .failed(.contextChanged) },
                 openURL: { _, _ in .failed(.contextChanged) },
                 dismiss: { _ in .failed(.contextChanged) }
@@ -237,7 +249,7 @@
         /// 创建本上下文的执行仍是路由器的当前执行。执行结算或被抢占后，单次执行的操作一律忽略。
         private var isCurrentExecution: Bool {
             guard let router, let execution else { return false }
-            return router.currentExecution === execution
+            return router.isCurrent(execution) && execution.generation == generation
         }
     }
 

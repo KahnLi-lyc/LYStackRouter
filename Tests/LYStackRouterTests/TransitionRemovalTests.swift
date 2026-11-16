@@ -90,7 +90,7 @@
             window.addSubview(page.view)
             XCTAssertNotNil(page.view.window)
 
-            router.resetSession()
+            router.invalidateContext()
             XCTAssertEqual(page.removedCount, 0)
             transition.finish()
             XCTAssertEqual(page.removedCount, 0)
@@ -110,7 +110,7 @@
             try router.replaceStack([XCTUnwrap(navigation.viewControllers.first)], in: navigation, animated: false)
             page.presentationOwner = UIViewController()
 
-            router.resetSession()
+            router.invalidateContext()
             XCTAssertEqual(page.removedCount, 0)
             transition.finish()
             XCTAssertEqual(page.removedCount, 0)
@@ -134,7 +134,7 @@
                 try destination.addChild(XCTUnwrap(page))
                 page?.didMove(toParent: destination)
 
-                router.resetSession()
+                router.invalidateContext()
                 XCTAssertEqual(page?.removedCount, 0)
                 page?.willMove(toParent: nil)
                 page?.removeFromParent()
@@ -155,7 +155,7 @@
             defer { router.tearDown() }
             try router.replaceStack([XCTUnwrap(navigation.viewControllers.first)], in: navigation, animated: false)
 
-            router.resetSession()
+            router.invalidateContext()
             XCTAssertEqual(page.removedCount, 1)
             transition.finish()
             XCTAssertEqual(page.removedCount, 1)
@@ -175,7 +175,7 @@
             destination.addChild(page)
             page.didMove(toParent: destination)
 
-            router.resetSession()
+            router.invalidateContext()
             XCTAssertEqual(page.removedCount, 0)
             XCTAssertTrue(router.transitionRemovals.isEmpty)
             page.willMove(toParent: nil)
@@ -225,10 +225,6 @@
     @MainActor
     private final class WeakCleanupHost: LYRouterHost {
         weak var activeNavigationController: UINavigationController?
-        var routerSessionID: String? {
-            nil
-        }
-
         var isRouterReady: Bool {
             true
         }

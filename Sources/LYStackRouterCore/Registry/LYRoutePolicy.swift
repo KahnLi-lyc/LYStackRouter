@@ -17,8 +17,6 @@ public struct LYRoutePolicy<Route: LYRoutable> {
     public var placement: LYRoutePlacement
     /// 是否允许推送、深链、H5 等外部来源打开。默认 false，需要显式放开。
     public var allowsExternal: Bool
-    /// 是否需要有效会话（例如已登录）。由会话拦截器读取。
-    public var requiresSession: Bool
     /// 参数校验。返回 false 时以 `.invalidParameter` 失败，不产生任何导航副作用。
     public var validate: @MainActor (Route) -> Bool
 
@@ -27,13 +25,11 @@ public struct LYRoutePolicy<Route: LYRoutable> {
         status: LYRouteStatus = .implemented,
         placement: LYRoutePlacement = .current,
         allowsExternal: Bool = false,
-        requiresSession: Bool = false,
         validate: @escaping @MainActor (Route) -> Bool = { _ in true }
     ) {
         self.status = status
         self.placement = placement
         self.allowsExternal = allowsExternal
-        self.requiresSession = requiresSession
         self.validate = validate
     }
 }

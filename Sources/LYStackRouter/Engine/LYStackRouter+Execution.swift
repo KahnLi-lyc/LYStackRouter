@@ -14,7 +14,7 @@
             options: LYOpenOptions = .init(),
             _ operation: () -> Void
         ) -> Submission {
-            let execution = NavigationExecution(sessionID: host?.routerSessionID, generation: generation)
+            let execution = NavigationExecution(generation: generation)
             execution.options = options
             execution.targetNavigation = navigation(for: options)
             execution.isModal = execution.targetNavigation.map { !currentDomain.contains($0) } ?? false
@@ -77,6 +77,27 @@
             return result
         }
 
+        /// 只有发起本次执行的异步调用者拥有取消权；普通观察者只调用 `value()`。
+        func waitForOwnedExecution(_ execution: NavigationExecution) async -> LYOpenResult {
+            await withTaskCancellationHandler {
+                // 取消可能早于处理器安装完成，也可能早于取消回调在 MainActor 上运行。
+                if Task.isCancelled { cancelPreparation(execution) }
+                return await execution.value()
+            } onCancel: {
+                Task { @MainActor [weak self, weak execution] in
+                    guard let self, let execution else { return }
+                    cancelPreparation(execution)
+                }
+            }
+        }
+
+        /// 仅终止仍属于该调用者的准备阶段；已提交给 UIKit 的展示按真实结果结算。
+        private func cancelPreparation(_ execution: NavigationExecution) {
+            guard isCurrent(execution), execution.phase == .preparing else { return }
+            terminateExecution()
+            schedulePending()
+        }
+
         /// 不等待底层任务响应取消；旧执行与其任务同步脱离执行权。
         func terminateExecution() {
             guard let execution = currentExecution else { return }
@@ -89,16 +110,20 @@
 
         /// 使当前代次失效：终止执行、清理挂起的移出页面、唤醒全部转场等待。
         ///
-        /// 登录时传入 `preservingModalNavigations: true`：同一宿主上仍在展示的模态栈继续由路由器接管，
+        /// 上下文失效时传入 `preservingModalNavigations: true`：同一宿主上仍在展示的模态栈继续由路由器接管，
         /// 返回、关闭与准备期抢占不受影响；其余场景同时拆除全部模态事件桥。
         func invalidateExecution(preservingModalNavigations: Bool = false) {
-            terminateExecution()
+            guard !invalidatingContext else { return }
+            invalidatingContext = true
+            defer { invalidatingContext = false }
             generation = UUID()
+            terminateExecution()
             // UIKit 可能省略最终回调，先移出登记并释放强快照；迟到回调仍可通过弱引用核对存活页面。
             let removals = Array(transitionRemovals.values)
             transitionRemovals.removeAll()
             removals.forEach { $0.invalidate() }
-            if !preservingModalNavigations {
+            // 结算观察者可能同步停止路由器；停止必须覆盖外层的模态保留选项。
+            if !preservingModalNavigations || stopped {
                 managedNavigations.values.forEach { $0.detach() }
                 managedNavigations.removeAll()
             }
@@ -111,12 +136,12 @@
         }
 
         func isCurrent(_ token: UUID) -> Bool {
-            generation == token && !stopped && host != nil
+            generation == token && !stopped && !invalidatingContext && host != nil
         }
 
         func isCurrent(_ execution: NavigationExecution) -> Bool {
             currentExecution === execution && execution.result == nil
-                && execution.sessionID == host?.routerSessionID && isCurrent(execution.generation)
+                && isCurrent(execution.generation)
         }
 
         func markResult(_ value: LYOpenResult) {
@@ -226,7 +251,7 @@
 
         // MARK: - Stabilization
 
-        /// 宿主状态可能变化时调用（例如根视图就绪、弹窗关闭、会话恢复）：
+        /// 宿主状态可能变化时调用（例如根视图就绪、弹窗关闭、业务条件恢复）：
         /// 核对准备中的执行来源是否仍有效，并尝试执行等待中的外部请求。
         public func navigationDidStabilize() {
             guard !stopped, host != nil else { return }

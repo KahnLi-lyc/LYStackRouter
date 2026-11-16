@@ -3,11 +3,17 @@ import DemoUIKit
 import LYStackRouterDiscovery
 import UIKit
 
-/// 账号操作，由宿主注入。模块不持有账号状态。
+/// 示例业务自己的账号状态；路由库不读取它，也不决定登录后的继续策略。
 @MainActor
-struct DemoAccount {
-    let isSignedIn: () -> Bool
-    let signIn: () -> Void
+final class DemoAccount {
+    var isSignedIn = false
+    var didSignIn: () -> Void = {}
+    var navigationDidStabilize: () -> Void = {}
+
+    func signIn() {
+        isSignedIn = true
+        didSignIn()
+    }
 }
 
 /// App 自己的模块：登录页与需要登录的钱包动作。与业务模块一样被自动发现。
@@ -35,8 +41,13 @@ struct AccountRouteModule: LYRouteModule {
         builder.page(.login) { _, context in
             context.show { LoginPage(metrics: metrics, account: account, context: context) }
         }
-        // 动作路由：不改变导航栈，结果为 `.performed`。未登录时由会话拦截器处理。
-        builder.action(.wallet, policy: .init(allowsExternal: true, requiresSession: true)) { _, context in
+        // 业务处理器自行决定登录跳转；外部请求受阻后等待业务显式通知稳定。
+        builder.action(.wallet, policy: .init(allowsExternal: true)) { _, context in
+            guard account.isSignedIn else {
+                if context.source.isExternal { context.fail(.blocked) }
+                else { context.continueNavigation(to: .login) }
+                return
+            }
             let sheet = DemoPage(pageID: "wallet", title: "钱包", identity: nil, metrics: metrics)
             context.present(UINavigationController(rootViewController: sheet))
             context.markPerformed()
@@ -62,6 +73,8 @@ final class LoginPage: DemoPage {
             guard let self else { return }
             account.signIn()
             context.back(from: self)
+            // 普通登录保留上下文；返回引起的转场结束后，等待中的钱包请求可继续。
+            account.navigationDidStabilize()
         }
     }
 }

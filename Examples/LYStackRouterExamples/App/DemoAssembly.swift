@@ -34,16 +34,10 @@ enum DemoAssembly {
         var environment = LYRouteEnvironment()
         environment.provide(DemoMetrics.self, metrics)
         environment.provide(DemoAccount.self, account)
-        // 未登录时：用户点击跳到登录页；推送等外部请求进入等待，登录后继续。
-        let session = LYRouteInterceptor<DemoRoute>(name: "session", priority: 1000) { request in
-            guard request.requiresSession, !account.isSignedIn() else { return .proceed }
-            return request.source.isExternal ? .deferUntilReady : .redirect(.login)
-        }
         return try LYStackRouter<DemoRoute>.build(
             host: host,
             modules: modules,
             environment: environment,
-            interceptors: [session],
             observers: [DemoObserver(metrics: metrics)],
             url: LYURLConfiguration(schemes: ["lydemo"], universalLinkHosts: ["demo.example.com"]),
             fallback: .placeholder

@@ -19,12 +19,12 @@
             XCTAssertEqual((host.activeNavigationController?.topViewController as? TestPage)?.identity, .club("two"))
         }
 
-        func testSessionResetInvalidatesExistingClient() async throws {
+        func testContextInvalidationInvalidatesExistingClient() async throws {
             let host = makeTabHost()
             let router = try makeClientRouter(host: host)
             defer { router.tearDown() }
             let client = router.makeClient()
-            router.resetSession()
+            router.invalidateContext()
 
             let result = await client.open(.club("one"))
             XCTAssertEqual(result, .failed(.contextChanged))

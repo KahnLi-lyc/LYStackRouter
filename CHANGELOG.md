@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.3.0 — Unreleased
+
+### Breaking
+
+- 新增 `invalidateContext()`：显式撤销旧上下文、客户端与确认回调，取消准备并以 `.contextChanged` 结算；保留宿主和页面栈。等待请求通知 `.contextInvalidated` 一次。
+- 移除 `requiresSession`、会话拦截器、宿主会话 ID、`sessionDidChange()`／`resetSession()` 与两个会话丢弃原因。登录、权限与登录跳转由业务代码处理。
+- 上下文与客户端统一绑定创建代次；旧上下文无法通过 `makeClient` 获得新能力，旧 `back` 不再操作栈。
+
+### Fixed
+
+- 调用方取消传播至其仍在准备中的执行，立即释放执行权；展示与纯观察等待不被取消回滚。
+- 旧宿主已释放且展示完成回调缺失时，更换宿主仍终止旧执行并隔离迟到回调。
+- 页面构造、宿主钩子和清理回调同步使上下文失效后，旧操作不再展示页面或改写后继执行；失效期间的重入导航被拒绝。
+
+### Documentation
+
+- 示例登录判断移至业务处理器；退出显式失效并注入新客户端。
+- [迁移说明](Docs/Migration-0.3.0.zh-Hans.md) 与 [验证记录](Docs/Verification-0.3.0.zh-Hans.md)。0.3.0 尚未打 tag 或发布，生产接入另需最低系统、目标工具链与真机验收。
+
 ## 0.2.0 (2026-11-12)
 
 ### Added

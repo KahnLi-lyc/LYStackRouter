@@ -5,14 +5,16 @@
         // MARK: - Stack Operations
 
         func push(_ page: UIViewController, in navigation: UINavigationController, animated: Bool) {
-            guard !stopped else { return }
-            currentExecution?.phase = .presenting
+            guard let execution = currentExecution, isCurrent(execution) else { return }
+            execution.phase = .presenting
             navigation.pushViewController(page, animated: animated && navigation.viewIfLoaded?.window != nil)
+            guard isCurrent(execution) else { return }
             markResult(.created)
         }
 
         /// 栈内已有同身份页面时回到它并返回 true；调用方不得再创建第二个页面。
         func reuse(_ identity: AnyHashable, in navigation: UINavigationController, animated: Bool = true) -> Bool {
+            guard let execution = currentExecution, isCurrent(execution) else { return false }
             let stack = navigation.viewControllers.map { ($0 as? LYPageIdentifiable)?.routeIdentity }
             switch StackPolicy.decide(target: identity, stack: stack) {
             case .alreadyTop:
@@ -20,6 +22,7 @@
                 return true
             case let .popTo(index):
                 popTo(navigation.viewControllers[index], in: navigation, animated: animated)
+                guard isCurrent(execution) else { return true }
                 markResult(.reused)
                 return true
             case .push:
@@ -55,23 +58,27 @@
 
         /// 在宿主的全部导航栈中查找已有页面；找到时切换到它所在的域并回到它。
         func revealExisting(where predicate: (UIViewController) -> Bool) -> Bool {
-            guard let host else { return false }
-            let navigations = currentExecution?.isModal == true
-                ? currentExecution?.targetNavigation.map { [$0] } ?? [] : host.allNavigationControllers
+            guard let host, let execution = currentExecution, isCurrent(execution) else { return false }
+            let navigations = execution.isModal
+                ? execution.targetNavigation.map { [$0] } ?? [] : host.allNavigationControllers
             for navigation in navigations {
-                guard let page = navigation.viewControllers.last(where: predicate) else { continue }
+                let page = navigation.viewControllers.last(where: predicate)
+                guard isCurrent(execution) else { return false }
+                guard let page else { continue }
                 guard navigation.presentedViewController == nil,
                       currentExecution?.hasCompletedTransition(navigation.transitionCoordinator) ?? true else {
                     markResult(.failed(.blocked))
                     return true
                 }
-                currentExecution?.phase = .presenting
-                if currentExecution?.isModal != true { host.reveal(navigation) }
-                currentExecution?.targetNavigation = navigation
+                execution.phase = .presenting
+                if !execution.isModal { host.reveal(navigation) }
+                guard isCurrent(execution) else { return false }
+                execution.targetNavigation = navigation
                 if navigation.topViewController === page {
                     markResult(.alreadyVisible)
                 } else {
                     popTo(page, in: navigation, animated: false)
+                    guard isCurrent(execution) else { return false }
                     markResult(.reused)
                 }
                 return true
@@ -84,6 +91,7 @@
         /// 返回上一页。可以抢占“准备中”的导航（例如还在等网络），但不打断“展示中”的转场。
         /// 被抢占的导航以 `.contextChanged` 结算，其异步任务被取消；已经交给其他对象的工作不受影响。
         public func navigateBack(from page: UIViewController, in navigation: UINavigationController) {
+            guard !invalidatingContext else { return }
             // 栈顶页面内的子控制器以所在页面为来源。
             guard let routed = routedPage(for: page), routed.navigation === navigation else { return }
             let page = routed.page
@@ -94,7 +102,9 @@
             terminateExecution()
             let source = LYRouteSource.user
             _ = execute(kind: nil, source: source, intent: nil, proposed: .reused, options: .init(from: page)) { [self] in
+                guard let execution = currentExecution else { return }
                 replaceStack(Array(navigation.viewControllers.dropLast()), in: navigation, animated: true)
+                guard isCurrent(execution) else { return }
                 markResult(.reused)
             }
         }

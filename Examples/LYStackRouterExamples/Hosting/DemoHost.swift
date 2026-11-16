@@ -4,7 +4,7 @@ import DemoUIKit
 import LYStackRouter
 import UIKit
 
-/// 示例宿主：组合标准 `LYTabBarHost`，只额外实现会话状态与私信的分栏展示。
+/// 示例宿主：组合标准 `LYTabBarHost`，只额外实现就绪状态与私信的分栏展示。
 ///
 /// 演示自定义宿主无需重写 Tab 管理：除 `customShow` 外全部转交给 `LYTabBarHost`。
 @MainActor
@@ -14,8 +14,6 @@ final class DemoHost: NSObject, LYRouterHost, LYNavigationEventSource, UINavigat
     let tabs: LYTabBarHost
     /// 根视图展示完成后才允许导航，冷启动深链会先进入等待。
     var isReady = false
-    /// 当前登录账号；变化后调用 `router.sessionDidChange()`。
-    var sessionID: String?
 
     // MARK: - Initialization
 
@@ -25,10 +23,6 @@ final class DemoHost: NSObject, LYRouterHost, LYNavigationEventSource, UINavigat
     }
 
     // MARK: - LYRouterHost
-
-    var routerSessionID: String? {
-        sessionID
-    }
 
     var isRouterReady: Bool {
         isReady

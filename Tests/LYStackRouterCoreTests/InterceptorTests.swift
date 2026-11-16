@@ -3,8 +3,8 @@ import XCTest
 
 @MainActor
 final class InterceptorTests: XCTestCase {
-    private func request(_ route: TestRoute, requiresSession: Bool = false) -> LYInterceptRequest<TestRoute> {
-        LYInterceptRequest(route: route, source: .user, policyRequiresSession: requiresSession)
+    private func request(_ route: TestRoute) -> LYInterceptRequest<TestRoute> {
+        LYInterceptRequest(route: route, source: .user)
     }
 
     func testHigherPriorityRunsFirstAndStableForTies() {
@@ -41,23 +41,23 @@ final class InterceptorTests: XCTestCase {
         XCTAssertEqual(LYRouteInterceptor.evaluate(interceptors, request: request(.club("1"))), .reject(.permissionDenied))
     }
 
-    func testSessionInterceptorOnlyAffectsRoutesRequiringSession() {
-        let session = SessionFlag()
-        let interceptors: [LYRouteInterceptor<TestRoute>] = [.session(isActive: { session.signedIn })]
+    func testBusinessGateOnlyAffectsConfiguredKinds() {
+        let gate = BusinessGate()
+        let interceptors: [LYRouteInterceptor<TestRoute>] = [.init(name: "businessGate", kinds: [.wallet]) { _ in gate.ready ? .proceed : .deferUntilReady }]
         XCTAssertEqual(LYRouteInterceptor.evaluate(interceptors, request: request(.home)), .proceed)
         XCTAssertEqual(
-            LYRouteInterceptor.evaluate(interceptors, request: request(.wallet, requiresSession: true)),
+            LYRouteInterceptor.evaluate(interceptors, request: request(.wallet)),
             .deferUntilReady
         )
-        session.signedIn = true
+        gate.ready = true
         XCTAssertEqual(
-            LYRouteInterceptor.evaluate(interceptors, request: request(.wallet, requiresSession: true)),
+            LYRouteInterceptor.evaluate(interceptors, request: request(.wallet)),
             .proceed
         )
     }
 }
 
 @MainActor
-private final class SessionFlag {
-    var signedIn = false
+private final class BusinessGate {
+    var ready = false
 }

@@ -8,8 +8,6 @@
 
         /// 宿主拥有的导航栈。
         public let navigationController: UINavigationController
-        /// 当前会话标识；变化后请调用 `router.sessionDidChange()`。
-        public var sessionID: String?
         /// 是否允许导航。
         public var isReady = true
         /// 业务自己的导航代理，宿主会转发 `willShow` 与 `didShow`。
@@ -36,10 +34,6 @@
         }
 
         // MARK: - LYRouterHost
-
-        public var routerSessionID: String? {
-            sessionID
-        }
 
         public var isRouterReady: Bool {
             isReady

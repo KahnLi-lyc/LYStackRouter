@@ -76,10 +76,6 @@ private final class ModuleDemoHost: LYRouterHost, LYNavigationEventSource {
         stack.navigationController
     }
 
-    var routerSessionID: String? {
-        nil
-    }
-
     var isRouterReady: Bool {
         true
     }

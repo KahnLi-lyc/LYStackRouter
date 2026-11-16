@@ -62,7 +62,7 @@ let router = try LYStackRouter<AppRoute>.build(
     host: host,
     modules: .discovered,                    // 或 .explicit([...])
     environment: environment,
-    interceptors: [sessionInterceptor],
+    interceptors: [businessInterceptor],
     observers: [analytics],
     url: LYURLConfiguration(schemes: ["myapp"], universalLinkHosts: ["app.example.com"]),
     rewrite: remoteConfig.routeRewrite,
@@ -72,7 +72,7 @@ let router = try LYStackRouter<AppRoute>.build(
 
 - 每个窗口创建自己的宿主和路由器，由 SceneDelegate 或窗口协调器**同时持有两者**（写法见 README 的 `AppCoordinator`）。路由器只弱引用宿主，宿主也只弱引用路由器的回调，两者之间没有循环持有；只保存路由器、不保存宿主时，宿主会立刻释放，用户请求被忽略、外部请求一直等待。
 - 根视图上屏前把宿主的 `isRouterReady` 设为 false；上屏后改为 true 并调用 `router.navigationDidStabilize()`，冷启动携带的深链会在这之后执行。
-- 会话变化后更新宿主的 `routerSessionID` 并调用 `router.sessionDidChange()`。
+- 业务环境失效前先调用 `router.invalidateContext()`，再更新依赖并重新注入客户端。宿主只描述容器和就绪状态；登录、权限、登录后续跳转由业务决定。
 - 场景断开时调用 `router.tearDown()`，之后的请求以 `.stopped` 失败。
 
 ### 选择宿主
@@ -93,19 +93,25 @@ let router = try LYStackRouter<AppRoute>.build(
 
 ## 4. 拦截、降级与观察
 
-- 拦截器同步返回决策，在切换 Tab、创建页面之前执行。常见的会话拦截：未登录时用户点击重定向到登录页，外部请求等待登录后继续。
+- 通用拦截器同步返回决策，在切换 Tab、创建页面之前执行。登录与权限判断由业务路由处理器负责，例如：
 
   ```swift
-  LYRouteInterceptor<AppRoute>(name: "session", priority: 1000) { request in
-      guard request.requiresSession, !session.isSignedIn else { return .proceed }
-      return request.source.isExternal ? .deferUntilReady : .redirect(.login)
+  builder.action(.wallet, policy: .init(allowsExternal: true)) { _, context in
+      guard account.isSignedIn else {
+          if context.source.isExternal { context.fail(.blocked) }
+          else { context.continueNavigation(to: .login) }
+          return
+      }
+      context.markPerformed() // 在这里执行业务动作
   }
   ```
+
+  外部请求受阻后等待业务调用 `router.navigationDidStabilize()`。普通登录可以保留页面上下文；退出或替换业务环境应先显式失效。是否继续原请求由业务决定，库不读取账号状态。
 
 - 重定向后的路由重新经过完整准入，重定向深度上限为 4。观察者只收到目标路由的 `routeWillOpen` 与 `routeDidSettle`，需要统计重定向时在拦截器中自行记录。
 - `router.rewrite` 可以随时整体替换。`disabledKinds` 中的路由以 `.unavailable` 失败；配置了 `fallback` 时交给兜底展示。兜底前仍会检查外部白名单、参数校验与拦截器，降级不会放宽原入口的约束。
 - 观察者只能读取，不能改变执行结果。回调中没有 URL 原文，日志里不要再自行拼接参数。
-- 外部请求进入等待时结算为 `.deferred`；之后被更新请求取代、会话变化、重置、来源失效或路由器停止而不再执行时，观察者收到一次 `routeDidDropPending(_:source:reason:)`，原因见 `LYPendingDropReason`。
+- 外部请求进入等待时结算为 `.deferred`；之后被更新请求取代、显式上下文失效、来源失效或路由器停止而不再执行时，观察者收到一次 `routeDidDropPending(_:source:reason:)`，原因见 `LYPendingDropReason`。
 
 ## 5. 模块 Demo
 
@@ -175,7 +181,7 @@ let navigation = LYRouteClient<AppRoute>(open: { route, options in
 })
 ```
 
-`LYRouteClient` 是 `Sendable` 值，操作在主执行器执行，弱引用路由器和可选来源页面。从无会话登录后客户端继续可用；切换账号（即使尚未调用 `sessionDidChange()`）、退出登录、`resetSession()`、更换宿主或 `tearDown()` 后失效，返回 `failed(.contextChanged)`。来源页面已释放、不在栈顶或被覆盖时，按上面的来源结果表返回 `ignored`。其 `openURL` 使用用户来源。`dismiss(animated:)` 在来源栈内返回，在模态根关闭流程，在主宿主根返回 `ignored`。
+`LYRouteClient` 是 `Sendable` 值，操作在主执行器执行，弱引用路由器和可选来源页面。它绑定创建时的通用代次；`invalidateContext()`、更换／解绑宿主和 `tearDown()` 撤销旧客户端，返回 `failed(.contextChanged)`。正常结算与业务状态变化本身不触发失效。旧上下文的 `open` 返回 `.contextChanged`，`back` 不操作栈，`makeClient` 仍继承旧代次。路由器停止或释放后，`context.open` 返回 `.stopped`。来源页面已释放、不在栈顶或被覆盖时，按上面的来源结果表返回 `ignored`。其 `openURL` 使用用户来源。`dismiss(animated:)` 在来源栈内返回，在模态根关闭流程，在主宿主根返回 `ignored`。
 
 最上层模态 `UINavigationController` 内的来源可以打开 `.current` 路由。执行期间使用绑定的目标栈完成准备、确认和转场等待。返回完成或流程关闭后，旧准备立即失效，交互取消则保留有效来源。流程内发往其他 placement 的请求，用户请求返回 `ignored`，外部请求返回 `deferred`，流程关闭后该等待请求被丢弃。主示例提供模态流程演示。
 
@@ -197,3 +203,11 @@ if let scene = sourceViewController.view.window?.windowScene,
 - 模块的登记逻辑可以用 `LYSingleStackHost` 加假依赖做单元测试，`request` 同步返回结果。
 - 涉及转场、弹窗、确认框的行为需要在有窗口的宿主测试或 UI 测试中验证，包内无窗口测试覆盖不到。
 - 为 URL 模板写往返测试：`router.route(for: router.url(for: route)!) == route`。
+
+## 0.3 生命周期与取消迁移
+
+`invalidateContext()` 保留当前宿主与页面栈，终止当前执行并取消准备任务；等待的外部请求各通知一次 `.contextInvalidated`。UIKit 已开始的转场可以结束，旧完成回调不能影响后继执行。重新绑定同一宿主不失效；单纯更换宿主保留可重试等待项，失效的显式来源仍会丢弃。
+
+调用方取消 `open`／`openURL` 只撤销其创建且仍在准备中的执行；不等待不响应取消的工作。展示阶段按实际结果结算，不回滚业务副作用。取消 `waitForNavigation()` 的等待者不会取消导航；已返回 `.deferred` 的请求是独立等待项。
+
+库不检测业务环境、账号或依赖更换。业务未显式失效且宿主未变化时，旧能力仍有效。完整接口移除清单与注入示例见 [0.3.0 迁移说明](Migration-0.3.0.zh-Hans.md)。

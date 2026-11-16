@@ -11,6 +11,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
 
     private let metrics = DemoMetrics()
+    private let account = DemoAccount()
     private var host: DemoHost?
     private var router: LYStackRouter<DemoRoute>?
     private weak var me: MeViewController?
@@ -31,10 +32,6 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             meNavigation
         ]
         let host = DemoHost(tabs: LYTabBarHost(tabBarController: tabBar, placements: [.home: 0, .messages: 1, .me: 2]))
-        let account = DemoAccount(
-            isSignedIn: { [weak host] in host?.sessionID != nil },
-            signIn: { [weak self] in self?.setSignedIn(true) }
-        )
         let router: LYStackRouter<DemoRoute>
         do {
             router = try DemoAssembly.makeRouter(host: host, metrics: metrics, account: account)
@@ -47,10 +44,6 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         print("LYStackRouterExamples \(assembly)")
         let me = MeViewController(metrics: metrics, assembly: assembly)
         meNavigation.setViewControllers([me], animated: false)
-        let open: (DemoRoute) -> Void = { [weak router] route in _ = router?.request(route) }
-        home.open = open
-        conversations.open = open
-        me.open = open
         home.canOpenFlow = { [weak router] in router?.canOpen(.flow) == true }
         home.openWithoutAnimation = { [weak router, weak home] in
             guard let router, let home else { return }
@@ -65,7 +58,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             top.present(alert, animated: true)
         }
         home.openURL = { [weak self] url in self?.openDeepLink(url) }
-        me.signOut = { [weak self] in self?.setSignedIn(false) }
+        me.signOut = { [weak self] in self?.signOut() }
         me.setDegraded = { [weak router] degraded in
             router?.rewrite = degraded ? LYRouteRewrite(disabledKinds: ["member"]) : .none
         }
@@ -86,6 +79,9 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         self.host = host
         self.router = router
         self.me = me
+        account.didSignIn = { [weak me] in me?.showSession(true) }
+        account.navigationDidStabilize = { [weak router] in router?.navigationDidStabilize() }
+        injectRootClients()
 
         let window = UIWindow(windowScene: windowScene)
         window.rootViewController = tabBar
@@ -107,10 +103,21 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         Task { @MainActor [weak router] in _ = await router?.openURL(url, source: .deepLink) }
     }
 
-    private func setSignedIn(_ signedIn: Bool) {
-        host?.sessionID = signedIn ? "demo-user" : nil
-        router?.sessionDidChange()
-        me?.showSession(signedIn)
+    private func signOut() {
+        // 先撤销旧页面与旧业务依赖的导航能力，再替换状态并注入当前代次的客户端。
+        router?.invalidateContext()
+        account.isSignedIn = false
+        injectRootClients()
+        me?.showSession(false)
+    }
+
+    private func injectRootClients() {
+        guard let router, let host else { return }
+        for navigation in host.tabs.allNavigationControllers {
+            guard let root = navigation.viewControllers.first as? DemoPage else { continue }
+            let client = router.makeClient(from: root)
+            root.open = { route in Task { _ = await client.open(route) } }
+        }
     }
 
     private static func tab(_ root: UIViewController, title: String, image: String) -> UINavigationController {

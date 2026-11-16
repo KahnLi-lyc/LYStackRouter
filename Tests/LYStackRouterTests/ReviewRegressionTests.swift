@@ -22,33 +22,30 @@
             XCTAssertEqual(tabs.selectedIndex, 1)
         }
 
-        // MARK: - Session
+        // MARK: - Context Lifecycle
 
-        /// 游客期间创建的页面客户端在登录（nil → A）后仍可导航。
-        func testPageClientSurvivesLogin() async throws {
+        /// 页面客户端在稳定事件后仍可导航。
+        func testPageClientSurvivesStabilization() async throws {
             let root = UIViewController()
             let host = LYSingleStackHost(root: root)
             let router = try makeRouter(host: host)
             defer { router.tearDown() }
             let client = router.makeClient(from: root)
 
-            host.sessionID = "A"
-            router.sessionDidChange()
+            router.navigationDidStabilize()
 
             let result = await client.open(.page, options: .init(animated: false))
             XCTAssertEqual(result, .created)
         }
 
-        /// 切换账号（A → B）后，旧会话的客户端失效。
-        func testSwitchingAccountInvalidatesClient() async throws {
+        /// 显式使上下文失效后，旧客户端不能继续导航。
+        func testExplicitContextInvalidationInvalidatesClient() async throws {
             let host = LYSingleStackHost(root: UIViewController())
-            host.sessionID = "A"
             let router = try makeRouter(host: host)
             defer { router.tearDown() }
             let client = router.makeClient()
 
-            host.sessionID = "B"
-            router.sessionDidChange()
+            router.invalidateContext()
 
             let result = await client.open(.page, options: .init(animated: false))
             XCTAssertEqual(result, .failed(.contextChanged))
@@ -56,16 +53,14 @@
             XCTAssertEqual(fresh, .created)
         }
 
-        /// 退出登录（A → nil）后，旧会话的客户端失效。
-        func testSignOutInvalidatesClient() async throws {
+        /// 重复使上下文失效安全，旧客户端继续失效。
+        func testRepeatedContextInvalidationInvalidatesClient() async throws {
             let host = LYSingleStackHost(root: UIViewController())
-            host.sessionID = "A"
             let router = try makeRouter(host: host)
             defer { router.tearDown() }
             let client = router.makeClient()
 
-            host.sessionID = nil
-            router.sessionDidChange()
+            router.invalidateContext()
 
             let result = await client.open(.page, options: .init(animated: false))
             XCTAssertEqual(result, .failed(.contextChanged))
@@ -89,15 +84,14 @@
             XCTAssertEqual(replacement.navigationController.viewControllers.count, 1)
         }
 
-        /// 宿主会话已变为另一账号但尚未调用 `sessionDidChange()` 时，旧客户端也不能跨账号导航。
-        func testClientRejectsUnreportedAccountSwitch() async throws {
+        /// 宿主显式使上下文失效后，旧客户端不能继续导航。
+        func testClientRejectsInvalidatedContext() async throws {
             let host = LYSingleStackHost(root: UIViewController())
-            host.sessionID = "A"
             let router = try makeRouter(host: host)
             defer { router.tearDown() }
             let client = router.makeClient()
 
-            host.sessionID = "B"
+            router.invalidateContext()
             let result = await client.open(.page, options: .init(animated: false))
             XCTAssertEqual(result, .failed(.contextChanged))
             XCTAssertEqual(host.navigationController.viewControllers.count, 1)
@@ -265,7 +259,7 @@
             XCTAssertNil(router.pending)
         }
 
-        /// 重置会话、停止路由器分别报告 sessionReset 与 stopped。
+        /// 上下文失效、停止路由器分别报告 contextInvalidated 与 stopped。
         func testResetAndTearDownReportDropReasons() async throws {
             let host = LYSingleStackHost(root: UIViewController())
             host.isReady = false
@@ -273,11 +267,11 @@
             let router = try makeRouter(host: host, observers: [observer])
 
             _ = await router.open(.page, source: .push)
-            router.resetSession()
+            router.invalidateContext()
             _ = await router.open(.page, source: .push)
             router.tearDown()
             router.tearDown()
-            XCTAssertEqual(observer.dropped.map(\.reason), [.sessionReset, .stopped])
+            XCTAssertEqual(observer.dropped.map(\.reason), [.contextInvalidated, .stopped])
         }
 
         /// 来源失效的等待请求被丢弃，不再结算，只通知一次。
@@ -303,24 +297,23 @@
             XCTAssertEqual(observer.settled, [.deferred])
         }
 
-        /// 宿主会话在未通知路由器的情况下变化，执行前发现不符时报告 sessionChanged。
-        func testPendingWithChangedSessionReportsDrop() async throws {
+        /// 失效时丢弃的等待请求不会在后续稳定事件中重放。
+        func testInvalidatedPendingCannotReplayAfterStabilization() async throws {
             let host = LYSingleStackHost(root: UIViewController())
-            host.sessionID = "A"
             host.isReady = false
             let observer = DropObserver()
             let router = try makeRouter(host: host, observers: [observer])
             defer { router.tearDown() }
 
             _ = await router.open(.page, source: .push)
-            host.sessionID = "B"
+            router.invalidateContext()
             host.isReady = true
             router.navigationDidStabilize()
             await waitUntil { router.pending == nil }
             for _ in 0 ..< 5 {
                 await Task.yield()
             }
-            XCTAssertEqual(observer.dropped.map(\.reason), [.sessionChanged])
+            XCTAssertEqual(observer.dropped.map(\.reason), [.contextInvalidated])
             XCTAssertEqual(host.navigationController.viewControllers.count, 1)
         }
 

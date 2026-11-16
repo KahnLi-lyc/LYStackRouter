@@ -46,12 +46,15 @@
     extension LYStackRouter {
         // MARK: - Client
 
-        /// 创建绑定当前会话代次的客户端；绑定页面时仅保留弱引用。
-        ///
-        /// 登录（nil → 会话）后客户端继续可用；切换账号、退出登录、`resetSession()`、更换宿主或停止路由器后，
-        /// 旧客户端一律返回 `.failed(.contextChanged)`，不会跨账号继续导航。
+        /// 创建绑定当前导航上下文代次的客户端；绑定页面时仅保留弱引用。
+        /// 上下文失效、更换或解绑宿主、停止路由器后，旧客户端返回 `.failed(.contextChanged)`。
         public func makeClient(from page: UIViewController? = nil) -> LYRouteClient<Route> {
-            let scope = RouteClientScope(page: page, sessionID: host?.routerSessionID, sessionEpoch: sessionEpoch)
+            makeClient(from: page, generation: generation)
+        }
+
+        /// 上下文创建客户端时继承原代次，不能借此取得新的导航能力。
+        func makeClient(from page: UIViewController?, generation: UUID) -> LYRouteClient<Route> {
+            let scope = RouteClientScope(page: page, generation: generation)
             return LYRouteClient(open: { [weak self] route, options in
                 guard let self, isClientScopeValid(scope) else { return .failed(.contextChanged) }
                 return await open(route, options: scopedOptions(options, scope: scope))
@@ -67,10 +70,7 @@
         // MARK: - Private
 
         private func isClientScopeValid(_ scope: RouteClientScope) -> Bool {
-            // 会话代次覆盖已通知的切换；会话比对兜住宿主已换账号但尚未调用 `sessionDidChange()` 的情况。
-            // 创建时无会话的客户端在登录后继续可用。
-            !Task.isCancelled && !stopped && host != nil && scope.sessionEpoch == sessionEpoch
-                && (scope.sessionID == nil || scope.sessionID == host?.routerSessionID)
+            !Task.isCancelled && isCurrent(scope.generation)
         }
 
         private func scopedOptions(_ options: LYOpenOptions, scope: RouteClientScope) -> LYOpenOptions {
@@ -90,7 +90,9 @@
                 terminateExecution()
                 let submission = execute(kind: nil, source: .user, intent: nil, proposed: .reused,
                                          options: .init(animated: animated, from: page)) {
+                    guard let execution = self.currentExecution else { return }
                     self.replaceStack(Array(navigation.viewControllers.dropLast()), in: navigation, animated: animated)
+                    guard self.isCurrent(execution) else { return }
                     self.markResult(.reused)
                 }
                 if let execution = submission.execution { return await execution.value() }
@@ -121,23 +123,21 @@
         }
     }
 
-    /// 将弱来源与创建时的会话代次封装在主线程对象中，客户端本身可安全注入并发业务代码。
+    /// 将弱来源与创建时的上下文代次封装在主线程对象中，客户端本身可安全注入并发业务代码。
     @MainActor
     private final class RouteClientScope {
         // MARK: - Properties
 
         weak var page: UIViewController?
         let hasPage: Bool
-        let sessionID: String?
-        let sessionEpoch: UUID
+        let generation: UUID
 
         // MARK: - Initialization
 
-        init(page: UIViewController?, sessionID: String?, sessionEpoch: UUID) {
+        init(page: UIViewController?, generation: UUID) {
             self.page = page
             hasPage = page != nil
-            self.sessionID = sessionID
-            self.sessionEpoch = sessionEpoch
+            self.generation = generation
         }
     }
 #endif

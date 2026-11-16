@@ -68,10 +68,10 @@
             XCTAssertEqual(blocker.calls["slow-a"], 1, "更早的受阻请求不能覆盖更新的等待请求")
         }
 
-        func testSessionResetDropsBlockedRequest() async {
+        func testContextInvalidationDropsBlockedRequest() async {
             blocker.blocked = ["a"]
             _ = await router.open(.chat("a"), source: .push)
-            router.resetSession()
+            router.invalidateContext()
             blocker.blocked = []
             router.navigationDidStabilize()
             await settle()

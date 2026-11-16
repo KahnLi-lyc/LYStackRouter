@@ -108,7 +108,7 @@
             builder.page(.settings, policy: .init(placement: LYRoutePlacement("me"), allowsExternal: true)) { _, context in
                 context.show { TestPage(nil, title: "settings") }
             }
-            builder.action(.wallet, policy: .init(allowsExternal: true, requiresSession: true)) { _, context in
+            builder.action(.wallet, policy: .init(allowsExternal: true)) { _, context in
                 context.markPerformed()
             }
         }
@@ -127,6 +127,9 @@
                 guard case let .chat(id) = route else { return }
                 context.show(identity: PageIdentity.chat(id)) { TestPage(.chat(id)) }
             }
+            builder.url("slow/<id>", parse: { $0["id"].map(AppRoute.slowChat) }, print: { route in
+                if case let .slowChat(id) = route { LYURLValues(path: ["id": id]) } else { nil }
+            })
             let gate = gate
             builder.page(.slowChat, policy: .init(allowsExternal: true)) { route, context in
                 guard case let .slowChat(id) = route else { return }

@@ -88,7 +88,7 @@ final class RoutingUITests: XCTestCase {
         XCTAssertTrue(isTabSelected("消息"))
     }
 
-    // MARK: - Interceptors
+    // MARK: - Business Admission
 
     func testWalletRedirectsToLoginThenOpensAfterSignIn() {
         launch()
@@ -99,6 +99,19 @@ final class RoutingUITests: XCTestCase {
         waitFor(app.staticTexts["已登录"])
         tap("me.wallet")
         waitFor(page("wallet"))
+    }
+
+    func testSignOutReinjectsRootClientAndRequiresBusinessLoginAgain() {
+        launch()
+        app.tabBars.buttons["我的"].tap()
+        tap("me.wallet")
+        waitFor(page("login"))
+        tap("login.signIn")
+        waitFor(app.staticTexts["已登录"])
+        tap("me.signOut")
+        waitFor(app.staticTexts["未登录"])
+        tap("me.wallet")
+        waitFor(page("login"))
     }
 
     // MARK: - Cross Module and Session Pages

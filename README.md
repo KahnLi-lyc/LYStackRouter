@@ -12,8 +12,10 @@
 
 ## Installation
 
+This documentation describes **0.3.0 (unreleased)**. Validate with a local checkout; use `from: "0.3.0"` after release. See the [migration guide](Docs/Migration-0.3.0.zh-Hans.md).
+
 ```swift
-.package(url: "https://github.com/KahnLi-lyc/LYStackRouter.git", from: "0.2.0")
+.package(path: "../LYStackRouter")
 ```
 
 | Product | Contents | Requirements |
@@ -85,7 +87,6 @@ final class AppCoordinator {
             host: host,
             modules: .explicit([ClubRouteModule.self, ChatRouteModule.self, WalletRouteModule.self]),
             environment: environment,
-            interceptors: [.session(isActive: { session.isSignedIn })],
             url: LYURLConfiguration(schemes: ["myapp"], universalLinkHosts: ["app.example.com"])
         )
     }
@@ -152,7 +153,7 @@ let navigation = LYRouteClient<AppRoute>(open: { route, options in
 })
 ```
 
-`LYRouteClient` is a `Sendable` value whose operations run on the main actor. It weakly references the router and the optional source page. A client survives signing in from no session. Switching accounts (even before `sessionDidChange()` is called), signing out, `resetSession()`, attaching a different host or `tearDown()` invalidate it, and it then returns `failed(.contextChanged)`. A page client whose page is released, no longer on top or covered follows the source table above and returns `ignored`. Its `openURL` uses a user source. `dismiss(animated:)` pops the source stack, closes a presented flow at its root, or returns `ignored` at a primary root.
+`LYRouteClient` is a `Sendable` value whose operations run on the main actor. It weakly references the router and the optional source page. Clients and contexts capture their creation generation. `invalidateContext()`, replacing/detaching the host, or `tearDown()` invalidates them with `failed(.contextChanged)`. Normal settlement preserves page callbacks. A stale context cannot mint a fresh client. A page client whose page is released, no longer on top or covered follows the source table above and returns `ignored`. Its `openURL` uses a user source. `dismiss(animated:)` pops the source stack, closes a presented flow at its root, or returns `ignored` at a primary root.
 
 A source inside the topmost presented `UINavigationController` can open `.current` routes within that flow. The execution uses its weakly bound target stack through preparation, confirmation and transition settlement. Back completion and flow dismissal invalidate the old preparation. Cancelled gestures keep valid origins. Cross-placement requests from the flow are `ignored` for users and `deferred` for external sources; when the flow closes, the waiting request is dropped. The example's modal workflow exercises this behavior.
 
@@ -198,13 +199,13 @@ The macro writes a record into `__DATA,__lystackrouter` at compile time. `build(
 | `LYRoutable` | Your route enum: `Hashable & Sendable` with a `CaseIterable` `Kind`. |
 | `LYRouteModule` | A feature's registration unit: `moduleID`, `init(environment:)`, `register(into:)`. |
 | `LYRouteEnvironment` | Per-router dependency container. Missing dependencies fail `build()` with the module and type name. |
-| `LYRoutePolicy` | Status (`implemented` / `placeholder` / `disabled`), placement, `allowsExternal` (default `false`), `requiresSession`, validation. |
+| `LYRoutePolicy` | Status (`implemented` / `placeholder` / `disabled`), placement, `allowsExternal` (default `false`), validation. |
 | `LYRouteInterceptor` | Priority-ordered, synchronous, typed decision: `proceed`, `redirect(Route)`, `reject(Failure)`, `deferUntilReady`. Runs before any side effect. |
 | `LYRouteRewrite` | Codable remote config: disable kinds or replace exact URL templates. |
 | `LYRouteObserver` | Read-only analytics hooks. Receives kind, source and result, never the raw URL. `routeDidDropPending(_:source:reason:)` reports a `deferred` external request that will no longer run. After a redirect, observers see the target route only. |
 | `LYRouteFallback` | Handles placeholder and disabled routes, and unregistered routes for local requests in non-exhaustive builds, e.g. `.placeholder`. It runs only after the external allowlist, validation and interceptors pass. |
 | `LYRouteContext` | What a handler gets: `show(identity:)`, `present`, `prepare` + `isStillValid()`, `confirm`, `open`, `back(from:)`, `replaceStack`, `revealExisting(where:)`, `markPerformed`, `fail`. |
-| `LYRouterHost` | Your container: session ID, readiness, navigation stacks per placement, `select` / `reveal`, and a `customShow` hook for split containers. `LYSingleStackHost` and `LYTabBarHost` are built in. `LYTabBarHost` becomes the tab bar delegate and forwards unimplemented methods to `forwardingTabDelegate`; navigation delegate methods go to `forwardingDelegate`. |
+| `LYRouterHost` | Your container: readiness, navigation stacks per placement, `select` / `reveal`, and a `customShow` hook for split containers. `LYSingleStackHost` and `LYTabBarHost` are built in. `LYTabBarHost` becomes the tab bar delegate and forwards unimplemented methods to `forwardingTabDelegate`; navigation delegate methods go to `forwardingDelegate`. |
 | `LYOpenResult` | `created`, `reused`, `alreadyVisible`, `performed`, `awaitingConfirmation`, `deferred`, `ignored`, `failed(LYRouteFailure)`. |
 
 ### Engine guarantees
@@ -212,11 +213,15 @@ The macro writes a record into `__DATA,__lystackrouter` at compile time. `build(
 - A navigation settles once. A user request while another navigation runs, or while a transition is in flight, is `ignored`. Taps never queue up.
 - During `prepare`, a legitimate back preempts the navigation (`failed(.contextChanged)`). The late preparation cannot show anything. Always `await context.isStillValid()` before showing after preparation: the router does not check for you.
 - A host that is not ready preempts preparation only. A navigation already presenting settles through its transition or confirmation alert.
-- External requests (push, deep link, web) that cannot run yet are `deferred`. Only the latest one is kept, bound to the current session, and it runs after the blocking sheet or transition ends. That includes an interactive back swipe that is cancelled.
-- Switching or signing out of an account drops the waiting request. Signing in from no session keeps it. Every dropped `deferred` request reaches `routeDidDropPending` exactly once with a `LYPendingDropReason`.
+- External requests (push, deep link, web) that cannot run yet are `deferred`. Only the latest one is kept, and it runs after the blocking sheet or transition ends. That includes an interactive back swipe that is cancelled.
+- Business code owns login, permissions and login navigation. `invalidateContext()` explicitly drops waiting requests with `.contextInvalidated`, cancels preparation and revokes old contexts without changing the stack. The library cannot detect a changed business environment unless explicitly invalidated or the host changes. Every dropped `deferred` request reaches `routeDidDropPending` exactly once with a `LYPendingDropReason`.
 - When the router pops back to an existing page, only the pages that actually left the stack receive `routerDidRemovePage()`. Pages the user pops are not treated as router cleanup.
 - URLs ignore trailing slashes: `myapp://club/42/` matches `club/<id>`.
 - If UIKit refuses to present a confirmation alert, the navigation settles as `failed(.blocked)` instead of holding the lock.
+
+Cancelled `open` / `openURL` calls fail with `.contextChanged` before admission. Caller cancellation preempts only its own preparing execution without waiting for the worker; presentation settles normally. Cancelling a `waitForNavigation()` observer does not cancel another caller’s navigation.
+
+Check login and permissions in business handlers (see `AccountRouteModule`). Before replacing the business environment, call `router.invalidateContext()`, update dependencies and inject new clients from `router.makeClient()`. Business code decides whether ordinary login should invalidate contexts.
 
 ## Example app
 
@@ -262,7 +267,7 @@ LYStackRouter was designed after reading the source of these libraries. No code 
 | [swift-router](https://github.com/eriicafes/swift-router) | MIT | Routes declaring both URL directions | SwiftUI-only design |
 | [RouteComposer](https://github.com/ekazaev/route-composer) | README only, source not reviewed | Post-navigation tasks as the model for observers | — |
 
-The execution engine supports explicit container ownership, preparation cancellation and session isolation for modular UIKit applications.
+The execution engine supports explicit container ownership, preparation cancellation and explicit context isolation for modular UIKit applications.
 
 ## Planned additions
 

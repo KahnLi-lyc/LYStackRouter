@@ -8,7 +8,7 @@
     /// - 返回可以抢占“准备中”的导航（例如还在等网络），但不能打断“展示中”的转场。
     /// - 外部请求遇到暂时受阻时只保留最近一个，宿主稳定后自动执行。
     /// - 只清理确实离开导航栈的页面；交互返回取消时不清理。
-    /// - 宿主更换、会话重置后，旧导航的迟到回调一律作废。
+    /// - 宿主更换、上下文失效后，旧导航的迟到回调一律作废。
     @MainActor
     public final class LYStackRouter<Route: LYRoutable> {
         // MARK: - Properties
@@ -27,15 +27,13 @@
         let fallback: LYRouteFallback<Route>?
 
         weak var host: (any LYRouterHost)?
-        /// 最近一次确认的会话标识，用于区分“登录”（nil → A）与“切换账号”（A → B）。
-        var knownSessionID: String?
         let allowsUnregistered: Bool
         var generation = UUID()
-        /// 会话代次：只在重置会话、切换或解绑宿主、停止时更换。登录（nil → 会话）保留，客户端据此判断是否失效。
-        var sessionEpoch = UUID()
         var currentExecution: NavigationExecution?
         var managedNavigations: [ObjectIdentifier: NavigationEventBridge] = [:]
         var stopped = false
+        /// 同步失效期间关闭准入，避免观察者重入创建半失效的执行。
+        var invalidatingContext = false
         var sequence: UInt64 = 0
         var pending: Pending?
         var redirectDepth = 0
@@ -66,7 +64,6 @@
             let source: LYRouteSource
             let options: LYOpenOptions
             let sequence: UInt64
-            var sessionID: String?
         }
 
         // MARK: - Initialization
@@ -158,12 +155,14 @@
 
         /// 绑定宿主。更换宿主会使旧宿主上的导航作废；外部等待中的请求保留。
         public func attach(_ host: any LYRouterHost) {
-            guard !stopped else { return }
-            if let old = self.host, old !== host { detach(old) }
-            // 原宿主可能已释放（路由器弱持有宿主），此时 detach 不会执行；只要宿主变化就更换会话代次。
-            if self.host !== host { sessionEpoch = UUID() }
-            self.host = host
-            knownSessionID = host.routerSessionID
+            guard !stopped, !invalidatingContext else { return }
+            if self.host !== host {
+                (self.host as? LYNavigationEventSource)?.onNavigationDidShow = nil
+                // 即使弱引用的旧宿主已释放，也必须结束它留下的执行与事件桥。
+                invalidateExecution()
+                guard !stopped else { return }
+                self.host = host
+            }
             if let source = host as? LYNavigationEventSource {
                 source.onNavigationDidShow = { [weak self] navigation in self?.navigationDidShow(in: navigation) }
             }
@@ -172,39 +171,22 @@
 
         /// 解绑宿主。只有当前绑定的宿主才能解绑，旧宿主迟到的解绑不影响新宿主。
         public func detach(_ host: any LYRouterHost) {
-            guard self.host === host else { return }
-            sessionEpoch = UUID()
+            guard !invalidatingContext, self.host === host else { return }
             invalidateExecution()
             (host as? LYNavigationEventSource)?.onNavigationDidShow = nil
             self.host = nil
         }
 
-        /// 宿主会话变化后调用。
+        /// 使当前导航上下文失效，保留宿主与页面栈；业务状态由接入方管理。
         ///
-        /// - 从无会话变为有会话（登录）：保留等待中的外部请求并绑定到新会话，随后尝试执行；
-        ///   已创建的 `LYRouteClient` 与已接管的模态导航栈继续有效。
-        /// - 从一个会话变为另一个会话，或退出登录：等同 `resetSession()`，清空等待请求，旧客户端失效。
-        /// 两种情况都会使进行中的导航作废。
-        public func sessionDidChange() {
-            let current = host?.routerSessionID
-            guard current != knownSessionID else { return }
-            let previous = knownSessionID
-            knownSessionID = current
-            if previous == nil, let current {
-                if pending?.sessionID == nil { pending?.sessionID = current }
-                invalidateExecution(preservingModalNavigations: true)
-                navigationDidStabilize()
-            } else {
-                resetSession()
-            }
-        }
-
-        /// 无条件清空外部等待请求，并使进行中的导航作废。退出登录、切换账号时使用。
-        public func resetSession() {
-            dropPending(.sessionReset)
-            knownSessionID = host?.routerSessionID
-            sessionEpoch = UUID()
-            invalidateExecution()
+        /// 进行中的导航以 `.contextChanged` 结算，准备任务被取消；旧上下文、客户端与确认回调失效。
+        /// 等待中的外部请求以 `.contextInvalidated` 丢弃，每条请求最多通知一次。
+        public func invalidateContext() {
+            guard !stopped, !invalidatingContext else { return }
+            let dropped = pending
+            pending = nil
+            invalidateExecution(preservingModalNavigations: true)
+            if let dropped { notifyDrop(dropped, reason: .contextInvalidated) }
         }
 
         /// 停止路由器：之后的请求一律以 `.stopped` 失败。重复调用安全。
@@ -212,7 +194,8 @@
             guard !stopped else { return }
             stopped = true
             dropPending(.stopped)
-            resetSession()
+            (host as? LYNavigationEventSource)?.onNavigationDidShow = nil
+            invalidateExecution()
             host = nil
         }
 
@@ -223,16 +206,20 @@
         }
 
         /// 打开路由并等待本次导航结算。
+        /// 调用任务取消时，准备中的导航以 `.contextChanged` 结束；已交给 UIKit 的展示仍等待真实结果。
         @discardableResult
         public func open(_ route: Route, source: LYRouteSource = .user, options: LYOpenOptions = .init()) async -> LYOpenResult {
+            guard !Task.isCancelled else { return settled(route.kind, source, .failed(.contextChanged)).immediate }
             let submission = submit(route, source: source, options: options)
-            if let execution = submission.execution { return await execution.value() }
+            if let execution = submission.execution { return await waitForOwnedExecution(execution) }
             return submission.immediate
         }
 
         /// 打开 URL：先应用重写，再解析为路由；不属于本 App 或无法匹配时以 `.unmatchedURL` 失败。
+        /// 已取消的调用任务在解析与准入前返回 `.contextChanged`，不改变页面或等待请求。
         @discardableResult
         public func openURL(_ url: URL, source: LYRouteSource = .deepLink, options: LYOpenOptions = .init()) async -> LYOpenResult {
+            guard !Task.isCancelled else { return settled(nil, source, .failed(.contextChanged)).immediate }
             guard let route = route(for: url) else {
                 notifySettle(nil, source: source, result: .failed(.unmatchedURL))
                 return .failed(.unmatchedURL)

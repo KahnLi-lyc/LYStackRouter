@@ -18,7 +18,7 @@
                 host: host,
                 modules: .explicit([CommunityModule.self, ChatModule.self]),
                 environment: makeEnvironment(gate: gate),
-                interceptors: [.session(isActive: { [weak self] in self?.signedIn ?? false })],
+                interceptors: [.init(name: "businessGate", kinds: [.wallet]) { [weak self] _ in self?.businessReady == true ? .proceed : .deferUntilReady }],
                 observers: [observer],
                 url: LYURLConfiguration(schemes: ["app"])
             )
@@ -29,7 +29,7 @@
             router.tearDown()
         }
 
-        private var signedIn = false
+        private var businessReady = false
 
         private var home: UINavigationController {
             host.allNavigationControllers[0]
@@ -111,9 +111,9 @@
             XCTAssertEqual(home.viewControllers.count, 1)
         }
 
-        func testActionRouteReportsPerformedAndRequiresSession() {
-            XCTAssertEqual(router.request(.wallet), .ignored, "未登录时用户请求被忽略")
-            signedIn = true
+        func testActionRouteReportsPerformedAfterBusinessGateOpens() {
+            XCTAssertEqual(router.request(.wallet), .ignored, "业务条件未就绪时用户请求被忽略")
+            businessReady = true
             XCTAssertEqual(router.request(.wallet), .performed)
             XCTAssertEqual(home.viewControllers.count, 1)
         }
@@ -172,37 +172,33 @@
             XCTAssertEqual(observer.dropped, [.superseded, .superseded], "被取代的 a、b 各通知一次")
         }
 
-        func testExternalRequestDeferredBySessionRunsAfterSignIn() async {
+        func testExternalRequestDeferredByBusinessGateRunsAfterStabilization() async {
             let deferred = await router.open(.wallet, source: .push)
             XCTAssertEqual(deferred, .deferred)
-            signedIn = true
-            host.sessionID = "u1"
-            router.sessionDidChange()
+            businessReady = true
+            router.navigationDidStabilize()
             await waitUntil { !self.router.isNavigating && self.router.pending == nil }
-            XCTAssertNil(router.pending, "登录后等待请求被执行")
+            XCTAssertNil(router.pending, "条件就绪后等待请求被执行")
         }
 
-        func testSwitchingAccountDropsWaitingRequest() async {
-            host.sessionID = "a"
-            router.sessionDidChange()
+        func testInvalidatingContextDropsWaitingRequest() async {
             host.isReady = false
             _ = await router.open(.club("x"), source: .push)
             XCTAssertNotNil(router.pending)
-            host.sessionID = "b"
-            router.sessionDidChange()
+            router.invalidateContext()
             XCTAssertNil(router.pending)
-            XCTAssertEqual(observer.dropped, [.sessionReset])
+            XCTAssertEqual(observer.dropped, [.contextInvalidated])
             host.isReady = true
             router.navigationDidStabilize()
             await Task.yield()
             XCTAssertEqual(home.viewControllers.count, 1)
         }
 
-        func testSessionResetDropsWaitingRequest() async {
+        func testRepeatedInvalidationDoesNotReplayPending() async {
             host.isReady = false
             _ = await router.open(.club("a"), source: .push)
-            router.resetSession()
-            XCTAssertEqual(observer.dropped, [.sessionReset])
+            router.invalidateContext()
+            XCTAssertEqual(observer.dropped, [.contextInvalidated])
             host.isReady = true
             router.navigationDidStabilize()
             await Task.yield()
