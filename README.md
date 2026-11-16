@@ -277,6 +277,8 @@ Page result delivery, `popTo(kind:)` and popping back to a page identity, SwiftU
 
 SwiftUI hosts, state restoration, and generic module types with `@LYRouteModule` (use an explicit list). Discovery from prebuilt static libraries or XCFrameworks is not verified; reference the module in `.discovered(plus:)` or use an explicit list there.
 
+See [adoption boundaries](Docs/Adoption-Boundaries.zh-Hans.md) and [production-readiness verification](Docs/Production-Readiness-0.3.0.zh-Hans.md) for container responsibilities, result semantics, and verified environment limits.
+
 ## License
 
 MIT

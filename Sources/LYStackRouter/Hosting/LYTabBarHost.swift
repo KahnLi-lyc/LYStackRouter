@@ -12,8 +12,22 @@
         public let placements: [LYRoutePlacement: Int]
         /// 是否允许导航。
         public var isReady = true
-        /// 业务自己的导航代理，宿主会转发 `willShow` 与 `didShow`。
-        public weak var forwardingDelegate: (any UINavigationControllerDelegate)?
+        /// 业务自己的导航代理，宿主转发导航事件及动画、交互方法。业务负责持有代理。
+        /// 显式设置或清空立即更新 UIKit 能力；弱代理释放后在下一次 MainActor 执行中恢复默认能力。
+        public weak var forwardingDelegate: (any UINavigationControllerDelegate)? {
+            didSet {
+                delegateLifetime?.stop()
+                delegateLifetime = forwardingDelegate.map { delegate in
+                    NavigationDelegateLifetime(delegate: delegate) { [weak self] in
+                        guard let self, forwardingDelegate == nil else { return }
+                        refreshDelegateCapabilities()
+                    }
+                }
+                refreshDelegateCapabilities()
+            }
+        }
+
+        private var delegateLifetime: NavigationDelegateLifetime?
         /// 业务自己的 Tab 代理。宿主创建或 `attach` 时，TabBar 上已有的代理会记录到这里；
         /// 宿主只实现 `didSelect`，其余 `UITabBarControllerDelegate` 可选方法转交给它。
         public weak var forwardingTabDelegate: (any UITabBarControllerDelegate)?
@@ -46,6 +60,10 @@
         /// 宿主未实现的代理可选方法按所属协议转交：Tab 方法给 `forwardingTabDelegate`，导航方法给 `forwardingDelegate`。
         /// UIKit 只在主线程查询代理能力。
         override public nonisolated func responds(to selector: Selector!) -> Bool {
+            if selector == #selector(UINavigationControllerDelegate.navigationController(_:animationControllerFor:from:to:))
+                || selector == #selector(UINavigationControllerDelegate.navigationController(_:interactionControllerFor:)) {
+                return MainActor.assumeIsolated { forwardingDelegate?.responds(to: selector) == true }
+            }
             if super.responds(to: selector) { return true }
             if Self.declares(UITabBarControllerDelegate.self, selector) {
                 return MainActor.assumeIsolated { forwardingTabDelegate?.responds(to: selector) == true }
@@ -131,7 +149,32 @@
             onNavigationDidShow?(navigationController)
         }
 
+        /// 转交业务动画；显式实现使 UIKit 初次缓存能力时不依赖转发代理的设置时机。
+        public func navigationController(
+            _ navigationController: UINavigationController,
+            animationControllerFor operation: UINavigationController.Operation,
+            from fromVC: UIViewController,
+            to toVC: UIViewController
+        ) -> (any UIViewControllerAnimatedTransitioning)? {
+            forwardingDelegate?.navigationController?(navigationController, animationControllerFor: operation, from: fromVC, to: toVC)
+        }
+
+        /// 转交业务交互；弱代理释放后返回 nil，保留 UIKit 默认的非交互行为。
+        public func navigationController(
+            _ navigationController: UINavigationController,
+            interactionControllerFor animationController: any UIViewControllerAnimatedTransitioning
+        ) -> (any UIViewControllerInteractiveTransitioning)? {
+            forwardingDelegate?.navigationController?(navigationController, interactionControllerFor: animationController)
+        }
+
         // MARK: - Private
+
+        private func refreshDelegateCapabilities() {
+            for navigation in allNavigationControllers where navigation.delegate === self {
+                navigation.delegate = nil
+                navigation.delegate = self
+            }
+        }
 
         /// 成为 TabBar 的代理，并把原有业务代理记为转发对象。
         private func installTabDelegate() {

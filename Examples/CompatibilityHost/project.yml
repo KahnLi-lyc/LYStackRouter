@@ -1,0 +1,50 @@
+name: LYRouterCompatibility
+options:
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+packages:
+  LYStackRouter:
+    path: ../..
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    CODE_SIGN_STYLE: Automatic
+    GENERATE_INFOPLIST_FILE: YES
+    INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+    INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+    INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+    INFOPLIST_KEY_UILaunchScreen_Generation: YES
+    TARGETED_DEVICE_FAMILY: "1,2"
+targets:
+  LYRouterCoreCompatibility:
+    type: application
+    platform: iOS
+    sources: [Sources]
+    dependencies:
+      - package: LYStackRouter
+        product: LYStackRouter
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.kahnli.LYRouterCoreCompatibility
+  LYRouterDiscoveryCompatibility:
+    type: application
+    platform: iOS
+    sources: [Sources, Discovery]
+    dependencies:
+      - package: LYStackRouter
+        product: LYStackRouterDiscovery
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.kahnli.LYRouterDiscoveryCompatibility
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) ROUTER_DISCOVERY"
+schemes:
+  LYRouterCoreCompatibility:
+    build:
+      targets:
+        LYRouterCoreCompatibility: all
+  LYRouterDiscoveryCompatibility:
+    build:
+      targets:
+        LYRouterDiscoveryCompatibility: all

@@ -1,0 +1,456 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		09AD4B08946ABF4B92A88FE8 /* CompatibilityPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF6A2F3C6FD9148649E51678 /* CompatibilityPage.swift */; };
+		17397E0658A4D8F49F4519D6 /* CompatibilityProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEDEC7D61FD7B13B0019F84F /* CompatibilityProbe.swift */; };
+		1B1D2048955C0378EB936374 /* CompatibilityModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = E277E7E6DF4F6D18C55E7823 /* CompatibilityModule.swift */; };
+		273F595D96D5C97A4FDDFBB7 /* CompatibilityApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB929BBA062203A520FEA2F5 /* CompatibilityApp.swift */; };
+		29CBD4CD61AD28FCE4217F13 /* LYStackRouter in Frameworks */ = {isa = PBXBuildFile; productRef = 9788276612C7D980E4B48679 /* LYStackRouter */; };
+		48823F46F560C18E9528FB12 /* CompatibilityProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEDEC7D61FD7B13B0019F84F /* CompatibilityProbe.swift */; };
+		4F19E78D5385C42AF6E7EE1C /* CompatibilityPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF6A2F3C6FD9148649E51678 /* CompatibilityPage.swift */; };
+		73CDD8591A0435A8A2030014 /* DiscoveredCompatibilityModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE72C4C68C18CF31E2E0D6A0 /* DiscoveredCompatibilityModule.swift */; };
+		A3C3D0AFFE31B099BD0551D1 /* LYStackRouterDiscovery in Frameworks */ = {isa = PBXBuildFile; productRef = 138606A7A4B44EA4F2E9A1E0 /* LYStackRouterDiscovery */; };
+		C5557D33413A3F9A60502449 /* CompatibilityApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB929BBA062203A520FEA2F5 /* CompatibilityApp.swift */; };
+		DFE2449751133D43B5855B80 /* CompatibilityModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = E277E7E6DF4F6D18C55E7823 /* CompatibilityModule.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		10D3F2224CF56AA9B6B1BEDE /* LYStackRouter */ = {isa = PBXFileReference; lastKnownFileType = folder; name = LYStackRouter; path = ../..; sourceTree = SOURCE_ROOT; };
+		3ABAC1516975E97F4E46AB4E /* LYRouterCoreCompatibility.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LYRouterCoreCompatibility.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AF6A2F3C6FD9148649E51678 /* CompatibilityPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompatibilityPage.swift; sourceTree = "<group>"; };
+		CE72C4C68C18CF31E2E0D6A0 /* DiscoveredCompatibilityModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoveredCompatibilityModule.swift; sourceTree = "<group>"; };
+		CEDEC7D61FD7B13B0019F84F /* CompatibilityProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompatibilityProbe.swift; sourceTree = "<group>"; };
+		D75BE5C6D0153C758A39E1D4 /* LYRouterDiscoveryCompatibility.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LYRouterDiscoveryCompatibility.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E277E7E6DF4F6D18C55E7823 /* CompatibilityModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompatibilityModule.swift; sourceTree = "<group>"; };
+		EB929BBA062203A520FEA2F5 /* CompatibilityApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompatibilityApp.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		9353B7D485FFB9CEE532416F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A3C3D0AFFE31B099BD0551D1 /* LYStackRouterDiscovery in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9BED5F2A83290FF4C0999277 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				29CBD4CD61AD28FCE4217F13 /* LYStackRouter in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1CA313B96176055468A04CC3 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				10D3F2224CF56AA9B6B1BEDE /* LYStackRouter */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		35C6191C0CDC506B2BC6345B /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				EB929BBA062203A520FEA2F5 /* CompatibilityApp.swift */,
+				E277E7E6DF4F6D18C55E7823 /* CompatibilityModule.swift */,
+				AF6A2F3C6FD9148649E51678 /* CompatibilityPage.swift */,
+				CEDEC7D61FD7B13B0019F84F /* CompatibilityProbe.swift */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		69E061744E8D0CAC0014779B = {
+			isa = PBXGroup;
+			children = (
+				CC59FB356FBB0AE35DC40F8F /* Discovery */,
+				1CA313B96176055468A04CC3 /* Packages */,
+				35C6191C0CDC506B2BC6345B /* Sources */,
+				8497D4F40F995CEFA1F17C5B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		8497D4F40F995CEFA1F17C5B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				3ABAC1516975E97F4E46AB4E /* LYRouterCoreCompatibility.app */,
+				D75BE5C6D0153C758A39E1D4 /* LYRouterDiscoveryCompatibility.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CC59FB356FBB0AE35DC40F8F /* Discovery */ = {
+			isa = PBXGroup;
+			children = (
+				CE72C4C68C18CF31E2E0D6A0 /* DiscoveredCompatibilityModule.swift */,
+			);
+			path = Discovery;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		6F29C49560E5FDBD26DAE398 /* LYRouterDiscoveryCompatibility */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 89FD97008DA6BF39776435FB /* Build configuration list for PBXNativeTarget "LYRouterDiscoveryCompatibility" */;
+			buildPhases = (
+				066D6D33EE50F7CD57DD4297 /* Sources */,
+				9353B7D485FFB9CEE532416F /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LYRouterDiscoveryCompatibility;
+			packageProductDependencies = (
+				138606A7A4B44EA4F2E9A1E0 /* LYStackRouterDiscovery */,
+			);
+			productName = LYRouterDiscoveryCompatibility;
+			productReference = D75BE5C6D0153C758A39E1D4 /* LYRouterDiscoveryCompatibility.app */;
+			productType = "com.apple.product-type.application";
+		};
+		BABEAB59E1F2E232C5271529 /* LYRouterCoreCompatibility */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7C0D3028E86AC800E8A17263 /* Build configuration list for PBXNativeTarget "LYRouterCoreCompatibility" */;
+			buildPhases = (
+				8127B8B2D518FE8D38C15E7A /* Sources */,
+				9BED5F2A83290FF4C0999277 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LYRouterCoreCompatibility;
+			packageProductDependencies = (
+				9788276612C7D980E4B48679 /* LYStackRouter */,
+			);
+			productName = LYRouterCoreCompatibility;
+			productReference = 3ABAC1516975E97F4E46AB4E /* LYRouterCoreCompatibility.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		23EDDF36B4253471E80EC227 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					6F29C49560E5FDBD26DAE398 = {
+						ProvisioningStyle = Automatic;
+					};
+					BABEAB59E1F2E232C5271529 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 855A0CD2F05C39C08D772BB4 /* Build configuration list for PBXProject "LYRouterCompatibility" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 69E061744E8D0CAC0014779B;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				73000F87E314DB7C432EEF65 /* XCLocalSwiftPackageReference "../.." */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 8497D4F40F995CEFA1F17C5B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				BABEAB59E1F2E232C5271529 /* LYRouterCoreCompatibility */,
+				6F29C49560E5FDBD26DAE398 /* LYRouterDiscoveryCompatibility */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		066D6D33EE50F7CD57DD4297 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C5557D33413A3F9A60502449 /* CompatibilityApp.swift in Sources */,
+				DFE2449751133D43B5855B80 /* CompatibilityModule.swift in Sources */,
+				09AD4B08946ABF4B92A88FE8 /* CompatibilityPage.swift in Sources */,
+				48823F46F560C18E9528FB12 /* CompatibilityProbe.swift in Sources */,
+				73CDD8591A0435A8A2030014 /* DiscoveredCompatibilityModule.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8127B8B2D518FE8D38C15E7A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				273F595D96D5C97A4FDDFBB7 /* CompatibilityApp.swift in Sources */,
+				1B1D2048955C0378EB936374 /* CompatibilityModule.swift in Sources */,
+				4F19E78D5385C42AF6E7EE1C /* CompatibilityPage.swift in Sources */,
+				17397E0658A4D8F49F4519D6 /* CompatibilityProbe.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		049187454583922CC335A1BD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.kahnli.LYRouterDiscoveryCompatibility;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) ROUTER_DISCOVERY";
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		6A9CBD41BDB4FEBF2D02F11E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		7067189C8CE51EA3493258E8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.kahnli.LYRouterDiscoveryCompatibility;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) ROUTER_DISCOVERY";
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		70FD6FC28278603746C9BBE8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.kahnli.LYRouterCoreCompatibility;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		98A983CFE501B1C623A9E1B5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		EF8B9A7DCF9A4F4B99B8CED0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.kahnli.LYRouterCoreCompatibility;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		7C0D3028E86AC800E8A17263 /* Build configuration list for PBXNativeTarget "LYRouterCoreCompatibility" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EF8B9A7DCF9A4F4B99B8CED0 /* Debug */,
+				70FD6FC28278603746C9BBE8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		855A0CD2F05C39C08D772BB4 /* Build configuration list for PBXProject "LYRouterCompatibility" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6A9CBD41BDB4FEBF2D02F11E /* Debug */,
+				98A983CFE501B1C623A9E1B5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		89FD97008DA6BF39776435FB /* Build configuration list for PBXNativeTarget "LYRouterDiscoveryCompatibility" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7067189C8CE51EA3493258E8 /* Debug */,
+				049187454583922CC335A1BD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		73000F87E314DB7C432EEF65 /* XCLocalSwiftPackageReference "../.." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../..;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		138606A7A4B44EA4F2E9A1E0 /* LYStackRouterDiscovery */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = LYStackRouterDiscovery;
+		};
+		9788276612C7D980E4B48679 /* LYStackRouter */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = LYStackRouter;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 23EDDF36B4253471E80EC227 /* Project object */;
+}

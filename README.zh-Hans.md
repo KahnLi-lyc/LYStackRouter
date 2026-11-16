@@ -276,6 +276,8 @@ xcodebuild test -project Examples/Packages/DemoMessagingFeature/Demo/DemoMessagi
 
 SwiftUI 宿主、状态恢复，以及在泛型模块类型上使用 `@LYRouteModule`（请改用显式列表）。从预编译静态库或 XCFramework 中自动发现尚未验证；这类场景可以在 `.discovered(plus:)` 中引用模块，或直接使用显式列表。
 
+接入前请查阅 [能力与接入边界](Docs/Adoption-Boundaries.zh-Hans.md) 和 [生产接入审查](Docs/Production-Readiness-0.3.0.zh-Hans.md)，核对容器职责、结果语义及实际验收环境。
+
 ## 许可证
 
 MIT

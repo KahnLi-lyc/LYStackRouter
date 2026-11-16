@@ -2,6 +2,16 @@
     import UIKit
     @testable import LYStackRouter
 
+    /// 测试对象释放，不依赖较新工具链的不可变弱引用语法。
+    @MainActor
+    final class WeakReference<Value: AnyObject> {
+        weak var value: Value?
+
+        init(_ value: Value?) {
+            self.value = value
+        }
+    }
+
     enum AppRoute: LYRoutable {
         case club(String)
         case chat(String)
@@ -36,6 +46,7 @@
     final class TestPage: UIViewController, LYPageIdentifiable, LYRoutePageLifecycle {
         var identity: PageIdentity?
         private(set) var removedCount = 0
+        private(set) var appearanceEvents: [String] = []
 
         init(_ identity: PageIdentity?, title: String = "") {
             self.identity = identity
@@ -50,6 +61,26 @@
 
         var routeIdentity: AnyHashable? {
             identity.map(AnyHashable.init)
+        }
+
+        override func viewWillAppear(_ animated: Bool) {
+            super.viewWillAppear(animated)
+            appearanceEvents.append("willAppear")
+        }
+
+        override func viewDidAppear(_ animated: Bool) {
+            super.viewDidAppear(animated)
+            appearanceEvents.append("didAppear")
+        }
+
+        override func viewWillDisappear(_ animated: Bool) {
+            super.viewWillDisappear(animated)
+            appearanceEvents.append("willDisappear")
+        }
+
+        override func viewDidDisappear(_ animated: Bool) {
+            super.viewDidDisappear(animated)
+            appearanceEvents.append("didDisappear")
         }
 
         func routerDidRemovePage() {

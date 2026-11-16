@@ -1,0 +1,96 @@
+--- a/Examples/LYStackRouterExamples/App/SceneDelegate.swift
++++ b/Examples/LYStackRouterExamples/App/SceneDelegate.swift
+@@ -11,0 +12,2 @@
++    private var edgeProbeDelegate: EdgeProbeDelegate?
++    private weak var edgeProbeWeakDelegate: EdgeProbeDelegate?
+@@ -89,0 +92,18 @@
++        if ProcessInfo.processInfo.arguments.contains("-weak-delegate-edge") {
++            let delegate = EdgeProbeDelegate()
++            edgeProbeDelegate = delegate
++            edgeProbeWeakDelegate = delegate
++            host.tabs.forwardingDelegate = delegate
++            let releaseButton = UIButton(type: .system)
++            releaseButton.frame = CGRect(x: 280, y: 118, width: 120, height: 44)
++            releaseButton.setTitle("Release delegate", for: .normal)
++            releaseButton.accessibilityIdentifier = "test.release.delegate"
++            releaseButton.addAction(UIAction { [weak self] _ in
++                guard let self else { return }
++                let animations = edgeProbeDelegate?.animations ?? -1
++                let interactions = edgeProbeDelegate?.interactions ?? -1
++                edgeProbeDelegate = nil
++                metrics.record("test.delegate.released.\(edgeProbeWeakDelegate == nil).callbacks.\(animations).\(interactions)")
++            }, for: .touchUpInside)
++            window.addSubview(releaseButton)
++        }
+@@ -128,0 +149,27 @@
++
++@MainActor
++private final class EdgeProbeDelegate: NSObject, UINavigationControllerDelegate {
++    let animator = EdgeProbeAnimator()
++    var animations = 0
++    var interactions = 0
++    func navigationController(_ navigationController: UINavigationController, animationControllerFor operation: UINavigationController.Operation,
++                              from fromVC: UIViewController, to toVC: UIViewController) -> (any UIViewControllerAnimatedTransitioning)? {
++        animations += 1
++        return animator
++    }
++    func navigationController(_ navigationController: UINavigationController,
++                              interactionControllerFor animationController: any UIViewControllerAnimatedTransitioning) -> (any UIViewControllerInteractiveTransitioning)? {
++        interactions += 1
++        return nil
++    }
++}
++@MainActor
++private final class EdgeProbeAnimator: NSObject, UIViewControllerAnimatedTransitioning {
++    func transitionDuration(using transitionContext: (any UIViewControllerContextTransitioning)?) -> TimeInterval { 0.25 }
++    func animateTransition(using context: any UIViewControllerContextTransitioning) {
++        guard let target = context.view(forKey: .to) else { context.completeTransition(false); return }
++        context.containerView.addSubview(target)
++        target.alpha = 0
++        UIView.animate(withDuration: 0.25) { target.alpha = 1 } completion: { _ in context.completeTransition(!context.transitionWasCancelled) }
++    }
++}
+--- a/Examples/LYStackRouterExamplesUITests/RoutingUITests.swift
++++ b/Examples/LYStackRouterExamplesUITests/RoutingUITests.swift
+@@ -43,0 +44 @@
++        recordEdgeState("cancel-before-gesture")
+@@ -44,0 +46 @@
++        recordEdgeState("cancel-after-gesture")
+@@ -60,0 +63 @@
++        recordEdgeState("complete-before-gesture")
+@@ -62,0 +66 @@
++        recordEdgeState("complete-after-gesture")
+@@ -66,0 +71,18 @@
++    }
++
++    func testDefaultSwipeBackWorksAfterWeakInteractionDelegateRelease() {
++        launch()
++        tap("home.club.A")
++        tap("open.member.m1")
++        waitFor(page("member.m1"))
++        recordEdgeState("weak-before-release")
++        tap("test.release.delegate")
++        let released = expectation(for: NSPredicate(format: "value CONTAINS %@", "test.delegate.released.true.callbacks.2.2"), evaluatedWith: status("member.m1"))
++        wait(for: [released], timeout: 5)
++        recordEdgeState("weak-after-release")
++        let window = app.windows.firstMatch
++        window.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5))
++            .press(forDuration: 0.05, thenDragTo: window.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)))
++        recordEdgeState("weak-after-gesture")
++        waitFor(page("club.A"))
++        XCTAssertTrue(status("club.A").label.contains("depth 2 · cleaned 0"), status("club.A").label)
+@@ -214,0 +237,11 @@
++    private func recordEdgeState(_ stage: String) {
++        XCTContext.runActivity(named: stage) { activity in
++            let screenshot = XCTAttachment(screenshot: app.screenshot())
++            screenshot.lifetime = .keepAlways
++            activity.add(screenshot)
++            let state = XCTAttachment(string: "EDGE_STATE " + stage + "\n" + app.debugDescription)
++            state.lifetime = .keepAlways
++            activity.add(state)
++        }
++    }
++
+@@ -217 +250 @@
+-        app.launchArguments = ["-assembly", assembly]
++        app.launchArguments = ["-assembly", assembly] + (name.contains("WeakInteractionDelegateRelease") ? ["-weak-delegate-edge"] : [])

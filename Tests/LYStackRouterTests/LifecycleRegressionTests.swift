@@ -70,7 +70,7 @@
 
         func testReplacingReleasedHostTerminatesPresentingExecution() throws {
             var original: LYSingleStackHost? = LYSingleStackHost(root: UIViewController())
-            weak var released = original
+            let released = WeakReference(original)
             let router = try makeRouter(host: XCTUnwrap(original))
             defer { router.tearDown() }
             let navigation = try XCTUnwrap(original?.navigationController)
@@ -80,7 +80,7 @@
             }
             let execution = try XCTUnwrap(router.currentExecution)
             original = nil
-            XCTAssertNil(released)
+            XCTAssertNil(released.value)
             let replacement = LYSingleStackHost(root: UIViewController())
             router.attach(replacement)
             XCTAssertEqual(execution.result, .failed(.contextChanged))

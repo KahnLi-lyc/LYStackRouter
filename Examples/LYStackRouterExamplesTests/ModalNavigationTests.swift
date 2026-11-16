@@ -168,6 +168,34 @@ final class ModalNavigationTests: XCTestCase {
         XCTAssertEqual((modal.topViewController as? TestPage)?.identity, .chat("ready"))
     }
 
+    func testCompletedInteractivePopPreemptsPreparationAndIgnoresLateWorker() async throws {
+        let delegate = ModalDelegate()
+        let modal = await presentModal(delegate: delegate)
+        let root = try XCTUnwrap(modal.topViewController)
+        _ = await router.open(.club("x"), options: .init(animated: false, from: root))
+        let source = try XCTUnwrap(modal.topViewController as? TestPage)
+        var finished: LYOpenResult?
+        let opening = Task {
+            finished = await router.open(.slowChat("late"), options: .init(animated: false, from: source))
+        }
+        await waitUntil { self.gate.waiting == 1 }
+        let worker = try XCTUnwrap(router.currentExecution?.preparationTask)
+        let interaction = UIPercentDrivenInteractiveTransition()
+        delegate.interaction = interaction
+        modal.popViewController(animated: true)
+        await waitUntil { modal.transitionCoordinator?.isInteractive == true }
+        interaction.update(0.7)
+        interaction.finish()
+        await waitUntil { modal.transitionCoordinator == nil && !self.router.isNavigating }
+        await opening.value
+        XCTAssertEqual(finished, .failed(.contextChanged))
+        XCTAssertTrue(modal.topViewController === root)
+        XCTAssertEqual(source.removedCount, 0, "系统返回的清理由业务管理，路由器不能重复通知")
+        gate.open()
+        await worker.value
+        XCTAssertEqual(modal.viewControllers.count, 1, "迟到的准备不能重新展示页面")
+    }
+
     func testFullscreenCoverDoesNotCleanManagedModalBeforeActualDismissal() async throws {
         let modal = await presentModal()
         let root = try XCTUnwrap(modal.topViewController as? TestPage)
